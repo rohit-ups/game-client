@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Socket.IO Connection Tester</title>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --success-color: #2ecc71;
+        --error-color: #e74c3c;
+        --warning-color: #f1c40f;
+        --background-color: #f5f6fa;
+        --card-background: #ffffff;
+        --text-color: #2c3e50;
+        --border-color: #dcdde1;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.6;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: var(--primary-color);
+        margin-bottom: 10px;
+      }
+
+      .card {
+        background: var(--card-background);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 600;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      input[type="password"],
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      .connect-btn {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .disconnect-btn {
+        background-color: var(--error-color);
+        color: white;
+      }
+
+      .load-token-btn {
+        background-color: var(--warning-color);
+        color: var(--text-color);
+      }
+
+      .status {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
+
+      .status.connected {
+        background-color: var(--success-color);
+        color: white;
+      }
+
+      .status.disconnected {
+        background-color: var(--error-color);
+        color: white;
+      }
+
+      .log-container {
+        background-color: #1e1e1e;
+        color: #fff;
+        padding: 15px;
+        border-radius: 5px;
+        height: 300px;
+        overflow-y: auto;
+        font-family: "Courier New", Courier, monospace;
+        margin-top: 20px;
+      }
+
+      .log-entry {
+        margin-bottom: 5px;
+        padding: 5px;
+        border-bottom: 1px solid #333;
+      }
+
+      .log-entry.info {
+        color: #4a90e2;
+      }
+      .log-entry.success {
+        color: #2ecc71;
+      }
+      .log-entry.error {
+        color: #e74c3c;
+      }
+      .log-entry.warning {
+        color: #f1c40f;
+      }
+      .log-entry.platform {
+        border-left: 3px solid #4a90e2;
+      }
+      .log-entry.game {
+        border-left: 3px solid #2ecc71;
+      }
+
+      .log-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .log-filters {
+        display: flex;
+        gap: 10px;
+      }
+
+      .log-filter {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 5px;
+        background-color: var(--card-background);
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .log-filter.active {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .clear-logs-btn {
+        background-color: var(--error-color);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .clear-logs-btn:hover {
+        opacity: 0.9;
+      }
+
+      .settings-card {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+
+        button {
+          width: 100%;
+        }
+      }
+
+      .login-form {
+        background: var(--card-background);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .login-form h2 {
+        margin-bottom: 15px;
+        color: var(--primary-color);
+      }
+
+      .login-form input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+      }
+
+      .login-form button {
+        width: 100%;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      .login-form button:hover {
+        opacity: 0.9;
+      }
+
+      .token-display {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-top: 10px;
+        word-break: break-all;
+      }
+
+      .save-token-btn {
+        background-color: var(--success-color);
+        color: white;
+        margin-top: 10px;
+      }
+
+      .send-btn {
+        background-color: var(--primary-color);
+        color: white;
+        margin-top: 10px;
+        width: 100%;
+      }
+
+      .message-input-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .message-input-group input {
+        flex: 1;
+      }
+
+      .message-input-group button {
+        width: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Socket.IO Connection Tester</h1>
+        <p>Test your Socket.IO connections with ease</p>
+      </div>
+
+      <div class="settings-card">
+        <div class="card">
+          <h2>Authentication</h2>
+          <div class="login-form">
+            <input type="text" id="username" placeholder="Username" />
+            <input type="password" id="password" placeholder="Password" />
+            <button onclick="login()">Login</button>
+            <div id="tokenDisplay" class="token-display" style="display: none">
+              <strong>Token:</strong> <span id="token"></span>
+              <button class="save-token-btn" onclick="saveToken()">
+                Save Token to File
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Platform Socket Settings</h2>
+          <div class="form-group">
+            <label for="platformUrl">Platform URL:</label>
+            <input
+              type="text"
+              id="platformUrl"
+              value="http://localhost:5000"
+              placeholder="Enter platform URL"
+            />
+          </div>
+          <div class="form-group">
+            <label for="platformId">Platform ID:</label>
+            <input
+              type="text"
+              id="platformId"
+              value="test-platform"
+              placeholder="Enter platform ID"
+            />
+          </div>
+          <div class="form-group">
+            <label for="origin">Origin:</label>
+            <input
+              type="text"
+              id="origin"
+              value="test-origin"
+              placeholder="Enter origin"
+            />
+          </div>
+          <div class="button-group">
+            <button class="connect-btn" onclick="connectPlatform()">
+              Connect Platform
+            </button>
+            <button class="disconnect-btn" onclick="disconnectPlatform()">
+              Disconnect Platform
+            </button>
+          </div>
+          <div id="platformStatus" class="status disconnected">
+            Disconnected
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Game Socket Settings</h2>
+          <div class="form-group">
+            <label for="gameUrl">Game URL:</label>
+            <input
+              type="text"
+              id="gameUrl"
+              value="http://localhost:3001"
+              placeholder="Enter game URL"
+            />
+          </div>
+          <div class="form-group">
+            <label for="gameId">Game ID:</label>
+            <input
+              type="text"
+              id="gameId"
+              value="SL001"
+              placeholder="Enter game ID"
+            />
+          </div>
+          <div class="form-group">
+            <label for="gameMessage">Game Message:</label>
+            <input
+              type="text"
+              id="gameMessage"
+              placeholder="Enter message to send"
+              value='{"data":{"currentBet":0.0,"currentLines":20.0,"spins":1.0},"id":"SPIN"}'
+            />
+            <button class="send-btn" onclick="sendGameMessage()">
+              Send Message
+            </button>
+          </div>
+          <div class="button-group">
+            <button class="connect-btn" onclick="connectGame()">
+              Connect Game
+            </button>
+            <button class="disconnect-btn" onclick="disconnectGame()">
+              Disconnect Game
+            </button>
+          </div>
+          <div id="gameStatus" class="status disconnected">Disconnected</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Connection Log</h2>
+        <div class="log-controls">
+          <div class="log-filters">
+            <div
+              class="log-filter active"
+              data-filter="platform"
+              onclick="toggleLogFilter('platform')"
+            >
+              Platform
+            </div>
+            <div
+              class="log-filter active"
+              data-filter="game"
+              onclick="toggleLogFilter('game')"
+            >
+              Game
+            </div>
+            <div
+              class="log-filter active"
+              data-filter="system"
+              onclick="toggleLogFilter('system')"
+            >
+              System
+            </div>
+          </div>
+          <div class="clear-logs-btn" onclick="clearLogs()">Clear Logs</div>
+        </div>
+        <div id="log" class="log-container"></div>
+      </div>
+    </div>
+
+    <script>
+      let platformSocket = null;
+      let gameSocket = null;
+      let currentUsername = "";
+      let currentToken = "";
+      let activeFilters = {
+        platform: true,
+        game: true,
+        system: true,
+      };
+
+      // Load saved settings from localStorage
+      function loadSavedSettings() {
+        const settings = JSON.parse(
+          localStorage.getItem("socketSettings") || "{}",
+        );
+
+        if (settings.platformUrl)
+          document.getElementById("platformUrl").value = settings.platformUrl;
+        if (settings.gameUrl)
+          document.getElementById("gameUrl").value = settings.gameUrl;
+        if (settings.platformId)
+          document.getElementById("platformId").value = settings.platformId;
+        if (settings.origin)
+          document.getElementById("origin").value = settings.origin;
+        if (settings.gameId)
+          document.getElementById("gameId").value = settings.gameId;
+        if (settings.username) {
+          document.getElementById("username").value = settings.username;
+          currentUsername = settings.username;
+        }
+        if (settings.token) {
+          document.getElementById("token").textContent = settings.token;
+          document.getElementById("tokenDisplay").style.display = "block";
+          currentToken = settings.token;
+        } else {
+          // Try to load token from server if not in localStorage
+          loadTokenFromServer();
+        }
+      }
+
+      // Load token from server
+      async function loadTokenFromServer() {
+        try {
+          const response = await fetch("/api/load-token");
+          const data = await response.json();
+
+          if (data.success && data.token) {
+            currentToken = data.token;
+            document.getElementById("token").textContent = data.token;
+            document.getElementById("tokenDisplay").style.display = "block";
+            log("Token loaded from server", "success");
+
+            // Try to load username if available
+            try {
+              const usernameResponse = await fetch("/api/load-username");
+              const usernameData = await usernameResponse.json();
+              if (usernameData.success && usernameData.username) {
+                currentUsername = usernameData.username;
+                document.getElementById("username").value =
+                  usernameData.username;
+                log("Username loaded from server", "success");
+              }
+            } catch (error) {
+              // Username file might not exist, which is fine
+            }
+
+            saveSettings();
+          } else {
+            log("No token found on server", "info");
+          }
+        } catch (error) {
+          log("Error loading token from server: " + error.message, "error");
+        }
+      }
+
+      // Save settings to localStorage
+      function saveSettings() {
+        const settings = {
+          platformUrl: document.getElementById("platformUrl").value,
+          gameUrl: document.getElementById("gameUrl").value,
+          platformId: document.getElementById("platformId").value,
+          origin: document.getElementById("origin").value,
+          gameId: document.getElementById("gameId").value,
+          username: currentUsername,
+          token: currentToken,
+        };
+        localStorage.setItem("socketSettings", JSON.stringify(settings));
+      }
+
+      function toggleLogFilter(filter) {
+        activeFilters[filter] = !activeFilters[filter];
+        const filterElement = document.querySelector(
+          `.log-filter[data-filter="${filter}"]`,
+        );
+        filterElement.classList.toggle("active");
+        updateLogVisibility();
+      }
+
+      function updateLogVisibility() {
+        const logEntries = document.querySelectorAll(".log-entry");
+        logEntries.forEach((entry) => {
+          const isPlatform = entry.classList.contains("platform");
+          const isGame = entry.classList.contains("game");
+          const isSystem = !isPlatform && !isGame;
+
+          let shouldShow = false;
+          if (isPlatform && activeFilters.platform) shouldShow = true;
+          if (isGame && activeFilters.game) shouldShow = true;
+          if (isSystem && activeFilters.system) shouldShow = true;
+
+          entry.style.display = shouldShow ? "block" : "none";
+        });
+      }
+
+      function clearLogs() {
+        const logContainer = document.getElementById("log");
+        logContainer.innerHTML = "";
+      }
+
+      function log(message, type = "info", source = "system") {
+        const logContainer = document.getElementById("log");
+        const logEntry = document.createElement("div");
+        logEntry.className = `log-entry ${type} ${source}`;
+        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logContainer.appendChild(logEntry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+        updateLogVisibility();
+      }
+
+      async function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (!username || !password) {
+          log("Please enter both username and password", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/user/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ username, password }),
+          });
+
+          const data = await response.json();
+
+          if (data.token) {
+            currentUsername = username;
+            currentToken = data.token;
+            document.getElementById("token").textContent = data.token;
+            document.getElementById("tokenDisplay").style.display = "block";
+            log("Login successful", "success");
+            saveSettings();
+          } else {
+            log("Login failed: " + (data.error || "Unknown error"), "error");
+          }
+        } catch (error) {
+          log("Error during login: " + error.message, "error");
+        }
+      }
+
+      async function saveToken() {
+        if (!currentToken) {
+          log("No token to save", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/save-token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              token: currentToken,
+              username: currentUsername,
+            }),
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            log("Token saved successfully", "success");
+          } else {
+            log("Failed to save token: " + data.error, "error");
+          }
+        } catch (error) {
+          log("Error saving token: " + error.message, "error");
+        }
+      }
+
+      function connectPlatform() {
+        const url = document.getElementById("platformUrl").value;
+        const platformId = document.getElementById("platformId").value;
+        const origin = document.getElementById("origin").value;
+
+        if (!url || !currentToken) {
+          log("Please login first and enter platform URL", "error");
+          return;
+        }
+
+        try {
+          platformSocket = io(url, {
+            auth: {
+              token: currentToken,
+              platformId: platformId,
+              origin: origin,
+            },
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+          });
+
+          platformSocket.on("connect", () => {
+            document.getElementById("platformStatus").className =
+              "status connected";
+            document.getElementById("platformStatus").textContent = "Connected";
+            log(
+              "Platform socket connected successfully",
+              "success",
+              "platform",
+            );
+          });
+
+          platformSocket.on("disconnect", () => {
+            document.getElementById("platformStatus").className =
+              "status disconnected";
+            document.getElementById("platformStatus").textContent =
+              "Disconnected";
+            log("Platform socket disconnected", "warning", "platform");
+          });
+
+          platformSocket.on("error", (error) => {
+            log(`Platform socket error: ${error.message}`, "error", "platform");
+          });
+
+          platformSocket.on("connect_error", (error) => {
+            log(
+              `Platform connection error: ${error.message}`,
+              "error",
+              "platform",
+            );
+          });
+
+          platformSocket.on("alert", (message) => {
+            log(`Platform alert: ${message}`, "warning", "platform");
+          });
+
+          platformSocket.on("message", (message) => {
+            try {
+              const parsedMessage = JSON.parse(message);
+              log(
+                `Platform message: ${JSON.stringify(parsedMessage)}`,
+                "info",
+                "platform",
+              );
+            } catch (error) {
+              log(`Platform message: ${message}`, "info", "platform");
+            }
+          });
+
+          platformSocket.on("data", (data) => {
+            log(`Platform data: ${JSON.stringify(data)}`, "info", "platform");
+          });
+        } catch (error) {
+          log(`Error connecting to platform: ${error.message}`, "error");
+        }
+      }
+
+      function connectGame() {
+        const url = document.getElementById("gameUrl").value;
+        const gameId = document.getElementById("gameId").value;
+
+        if (!url || !currentToken) {
+          log("Please login first and enter game URL", "error");
+          return;
+        }
+
+        if (!platformSocket || !platformSocket.connected) {
+          log(
+            "Platform socket must be connected before connecting to game",
+            "error",
+          );
+          return;
+        }
+
+        try {
+          gameSocket = io(url, {
+            auth: {
+              token: currentToken,
+              gameId: gameId,
+            },
+            transports: ["websocket"],
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+          });
+
+          gameSocket.on("connect", () => {
+            document.getElementById("gameStatus").className =
+              "status connected";
+            document.getElementById("gameStatus").textContent = "Connected";
+            log("Game socket connected successfully", "success", "game");
+          });
+
+          gameSocket.on("disconnect", () => {
+            document.getElementById("gameStatus").className =
+              "status disconnected";
+            document.getElementById("gameStatus").textContent = "Disconnected";
+            log("Game socket disconnected", "warning", "game");
+          });
+
+          gameSocket.on("error", (error) => {
+            log(`Game socket error: ${error.message}`, "error", "game");
+          });
+
+          gameSocket.on("connect_error", (error) => {
+            log(`Game connection error: ${error.message}`, "error", "game");
+          });
+
+          gameSocket.on("alert", (message) => {
+            log(`Game alert: ${message}`, "warning", "game");
+          });
+
+          gameSocket.on("message", (message) => {
+            try {
+              const parsedMessage = JSON.parse(message);
+              log(
+                `Game message: ${JSON.stringify(parsedMessage)}`,
+                "info",
+                "game",
+              );
+            } catch (error) {
+              log(`Game message: ${message}`, "info", "game");
+            }
+          });
+
+          gameSocket.on("data", (data) => {
+            log(`Game data: ${JSON.stringify(data)}`, "info", "game");
+          });
+        } catch (error) {
+          log(`Error connecting to game: ${error.message}`, "error");
+        }
+      }
+
+      function disconnectPlatform() {
+        if (platformSocket) {
+          platformSocket.disconnect();
+          platformSocket = null;
+          document.getElementById("platformStatus").className =
+            "status disconnected";
+          document.getElementById("platformStatus").textContent =
+            "Disconnected";
+          log("Platform socket disconnected", "info");
+        }
+      }
+
+      function disconnectGame() {
+        if (gameSocket) {
+          gameSocket.disconnect();
+          gameSocket = null;
+          document.getElementById("gameStatus").className =
+            "status disconnected";
+          document.getElementById("gameStatus").textContent = "Disconnected";
+          log("Game socket disconnected", "info");
+        }
+      }
+
+      function sendGameMessage() {
+        if (!gameSocket || !gameSocket.connected) {
+          log("Game socket is not connected", "error");
+          return;
+        }
+
+        const messageInput = document.getElementById("gameMessage");
+        const message = messageInput.value.trim();
+
+        if (!message) {
+          log("Please enter a message to send", "error");
+          return;
+        }
+
+        try {
+          // Try to parse as JSON first
+          let parsedMessage;
+          try {
+            parsedMessage = JSON.parse(message);
+          } catch (e) {
+            // If not valid JSON, send as string
+            parsedMessage = message;
+          }
+          console.log("type of message:", typeof parsedMessage);
+
+          gameSocket.emit(
+            "message",
+            typeof parsedMessage === "string"
+              ? parsedMessage
+              : JSON.stringify(parsedMessage),
+          );
+          log(
+            `Sent message to game: ${typeof parsedMessage === "string" ? parsedMessage : JSON.stringify(parsedMessage)}`,
+            "info",
+          );
+          // messageInput.value = ''; // Clear input after sending
+        } catch (error) {
+          log(`Error sending message: ${error.message}`, "error");
+        }
+      }
+
+      // Add keyboard shortcut for sending messages
+      document
+        .getElementById("gameMessage")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            sendGameMessage();
+          }
+        });
+
+      // Load saved settings when the page loads
+      document.addEventListener("DOMContentLoaded", loadSavedSettings);
+
+      // Save settings when inputs change
+      document.querySelectorAll("input, select").forEach((input) => {
+        input.addEventListener("change", saveSettings);
+      });
+    </script>
+  </body>
+</html>
