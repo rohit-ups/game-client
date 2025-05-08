@@ -32,3 +32,10 @@ vendor/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# envs
+.env
+.envrc
+.env.local
+.env.development
+.env.production
