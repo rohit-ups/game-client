@@ -1,0 +1,27 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+---
+description: Go TUI CLI client for casino games platform
+globs:
+  - "cmd/**/*.go"
+  - "tui/**/*.go"
+alwaysApply: false
+---
+
+- **Dependency Management**: Use Go modules (`go mod init`, `go mod tidy`) for all dependencies; commit both `go.mod` and `go.sum`. :contentReference[oaicite:3]{index=3}
+- **Formatting**: Run `gofmt -s` or `go fmt ./...` before each commit to enforce canonical Go style. :contentReference[oaicite:4]{index=4}
+- **Imports**: Use `goimports` to auto‑organize imports on save. :contentReference[oaicite:5]{index=5}
+- **Project Layout**: Follow standard Go layout with `cmd/`, `internal/`, `pkg/`, and `tui/` directories :contentReference[oaicite:6]{index=6}
+- **TUI Components**: Build UI with Bubble Tea (`github.com/charmbracelet/bubbletea`) and Bubbles (`github.com/charmbracelet/bubbles`); implement `Model`, `Init`, `Update`, `View` per the Elm architecture. :contentReference[oaicite:7]{index=7}
+- **Token Storage**: Store auth token in user config dir (`os.UserConfigDir`) as JSON with file permissions `0600`. :contentReference[oaicite:8]{index=8}
+- **Authentication**: Include token in Socket.IO connections by setting `Authorization` in query or header when using `github.com/zhouhui8915/go-socket.io-client`. :contentReference[oaicite:9]{index=9}
+- **Context & Cancellation**: Pass `context.Context` to HTTP and socket calls; respect timeouts and cancellations. :contentReference[oaicite:10]{index=10}
+- **Error Handling**: Wrap errors with `%w` and use `errors.Is`/`errors.As` for inspection; bubble errors up for centralized logging. :contentReference[oaicite:11]{index=11}
+- **Logging**: Use a structured logger (e.g., `github.com/sirupsen/logrus`) with levels configurable via a `--verbose` flag. :contentReference[oaicite:12]{index=12}
+- **Testing**: Write unit tests with Go’s `testing` package; use `github.com/charmbracelet/x/teatest` for Bubble Tea view assertions. :contentReference[oaicite:13]{index=13}
+- **Documentation**: Add Go doc comments on all exported packages, types, funcs, and vars starting with the entity name. :contentReference[oaicite:14]{index=14}
+- **Linting**: Integrate `golangci-lint` with a `.golangci.yml` config including `govet`, `golint`, `errcheck`, and `staticcheck`. :contentReference[oaicite:15]{index=15}
+- **Versioning**: Adopt Semantic Versioning (`MAJOR.MINOR.PATCH`) for releases; document version bumps in CHANGELOG. :contentReference[oaicite:16]{index=16}
