@@ -57,12 +57,17 @@
     }
 
     function connectSocket() {
-      const url = document.getElementById('serverUrl').value;
+      const url = document.getElementById('serverUrl').value + '/playground';
       if (!url || !currentToken) {
         log('Server URL and token required', 'error');
         return;
       }
-      socket = io(url, { transports: ['websocket'], auth: { token: currentToken } });
+      // log(`url:${ url }tok:${ currentToken }`)
+
+      socket = io(url, {
+        transports: ['websocket'], 
+        auth: { token: currentToken } 
+      });
       document.getElementById('status').textContent = 'Connecting...';
 
       socket.on('connect', () => updateStatus('Connected'));
@@ -92,7 +97,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('serverUrl').value =
         localStorage.getItem('mockClient.serverUrl') ||
-        'https://csq8tq14-5001.inc1.devtunnels.ms/playground';
+        'http://localhost:5000/playground';
     });
 
     window.addEventListener('beforeunload', () => {

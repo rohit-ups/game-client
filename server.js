@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = process.env.PORT || 8080;
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5001";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 const server = http.createServer((req, res) => {
   // CORS headers (unchanged)
