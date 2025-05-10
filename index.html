@@ -28,9 +28,15 @@
 
   <section id="socket">
     <input id="serverUrl" placeholder="Server URL" style="width:300px;" />
-    <button onclick="connectSocket()">Connect</button>
+    <button id="connectBtn" onclick="connectSocket()" disabled>Connect</button>
     <button onclick="disconnectSocket()">Disconnect</button>
     <p>Status: <span id="status">Disconnected</span></p>
+  </section>
+
+  <section id="gameControl" style="display:none;">
+    <h2>Game Input</h2>
+    <textarea id="gameInput" rows="30" style="width:100%; max-width:600px;"></textarea><br>
+    <button onclick="sendGameUpdate()">Update Game</button>
   </section>
 
   <section id="logs">
@@ -133,39 +139,88 @@
         const json = await res.json();
         if (!res.ok) throw new Error(json.message || json.error);
 
-        currentGameToken = json.data.token || json.token;
+        const fullUrl = json.data.token || json.token;
+        const parsedToken = new URL(fullUrl).searchParams.get('token');
+        currentGameToken = parsedToken;
+
         document.getElementById('gameToken').textContent = currentGameToken;
         document.getElementById('gameTokenDisplay').style.display = 'block';
         log(`Game '${selectedOption.textContent}' started.`, 'success');
+
+        document.getElementById('connectBtn').disabled = false;
       } catch (err) {
         log('Error starting game: ' + err.message, 'error');
       }
     }
 
     function connectSocket() {
-      const url = document.getElementById('serverUrl').value + '/playground';
-      if (!url || !currentGameToken) {
-        log('Server URL and game token required', 'error');
+      if (!currentGameToken) {
+        log('No game token available. Start a game first.', 'error');
         return;
       }
 
-      socket = io(url, {
-        transports: ['websocket'],
-        auth: {token: currentGameToken}
-      });
+      try {
+        updateStatus('Connecting...');
+        log('Connecting to server...', 'info');
 
-      document.getElementById('status').textContent = 'Connecting...';
+        socket = io('http://localhost:5000/playground', {
+          transports: ['websocket'],
+          auth: {token: currentGameToken}
+        });
 
-      socket.on('connect', () => updateStatus('Connected'));
-      socket.on('disconnect', () => updateStatus('Disconnected'));
-      socket.on('error', err => log('Socket error: ' + err.message, 'error'));
-      socket.onAny((ev, data) => log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received'));
+        socket.on('connect', () => {
+          updateStatus('Connected');
+          log('Connected to server', 'success');
+          document.getElementById('gameControl').style.display = 'block';
+        });
+
+        socket.on('disconnect', () => {
+          updateStatus('Disconnected');
+          log('Disconnected from server', 'info');
+        });
+
+        socket.on('connect_error', (error) => {
+          updateStatus('Disconnected');
+          log(`Connection error: ${error.message}`, 'error');
+        });
+
+        socket.on('error', (error) => {
+          log(`Socket error: ${error.message || error}`, 'error');
+        });
+
+        socket.on('spin:result', (data) => {
+          log(`spin:result - ${JSON.stringify(data)}`, 'received');
+        });
+
+        socket.on('game:config', (data) => {
+          log(`game:config - ${JSON.stringify(data)}`, 'received');
+        });
+
+        socket.onAny((ev, data) => {
+          log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received');
+        });
+
+      } catch (err) {
+        log('Failed to connect: ' + err.message, 'error');
+      }
     }
 
     function disconnectSocket() {
       if (socket) {
         socket.disconnect();
         updateStatus('Disconnected');
+      }
+    }
+
+
+    function sendGameUpdate() {
+      const payload = document.getElementById('gameInput').value;
+      try {
+        const json = JSON.parse(payload);
+        socket.emit('game:update', json); // adjust event name as needed
+        log('Game update sent', 'success');
+      } catch (err) {
+        log('Invalid JSON: ' + err.message, 'error');
       }
     }
 
