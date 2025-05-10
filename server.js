@@ -79,6 +79,69 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+
+  // Proxy GET /api/games
+  if (req.url === "/api/games" && req.method === "GET") {
+    const opts = {
+      hostname: new URL(BACKEND_URL).hostname,
+      port: new URL(BACKEND_URL).port || 80,
+      path: "/api/games",
+      method: "GET",
+      headers: req.headers,
+    };
+
+    const backendReq = http.request(opts, backendRes => {
+      let data = "";
+      backendRes.on("data", chunk => data += chunk);
+      backendRes.on("end", () => {
+        res.writeHead(backendRes.statusCode, {
+          "Content-Type": backendRes.headers["content-type"] || "application/json"
+        });
+        res.end(data);
+      });
+    });
+
+    backendReq.on("error", err => {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+
+    backendReq.end();
+    return;
+  }
+
+
+  if (req.url.startsWith("/api/games/slug/") && req.url.endsWith("/play") && req.method === "GET") {
+    const backendUrl = new URL(`${BACKEND_URL}${req.url}`);
+    const opts = {
+      hostname: backendUrl.hostname,
+      port: backendUrl.port || 80,
+      path: backendUrl.pathname,
+      method: "GET",
+      headers: req.headers,
+    };
+
+    const backendReq = http.request(opts, backendRes => {
+      let data = "";
+      backendRes.on("data", chunk => data += chunk);
+      backendRes.on("end", () => {
+        res.writeHead(backendRes.statusCode, {
+          "Content-Type": backendRes.headers["content-type"] || "application/json"
+        });
+        res.end(data);
+      });
+    });
+
+    backendReq.on("error", err => {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ success: false, error: err.message }));
+    });
+
+    backendReq.end();
+    return;
+  }
+
+
   // Fallback 404
   res.writeHead(404);
   res.end();

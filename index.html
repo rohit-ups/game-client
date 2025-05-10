@@ -1,19 +1,29 @@
 <!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mock Casino Client</title>
 </head>
+
 <body>
   <h1>Mock Casino Client</h1>
-  
+
   <section id="login">
     <input id="username" placeholder="Username" />
     <input id="password" type="password" placeholder="Password" />
     <button onclick="login()">Login</button>
-    <p id="tokenDisplay" style="display:none;">Token: <span id="token"></span></p>
+    <p id="gameTokenDisplay" style="display:none;">
+      Game Token: <span id="gameToken"></span>
+    </p>
+  </section>
+
+  <section id="gameSelector">
+    <h2>Select a Game</h2>
+    <input type="text" id="searchGame" placeholder="Search games..." />
+    <select id="gameDropdown" size="5" style="width: 300px;" onchange="startGameFromDropdown()"></select>
   </section>
 
   <section id="socket">
@@ -39,15 +49,14 @@
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({username, password})
         });
         const json = await res.json();
         if (res.ok) {
           currentToken = json.data.accessToken;
-          document.getElementById('token').textContent = currentToken;
-          document.getElementById('tokenDisplay').style.display = 'block';
           log('Login successful', 'success');
+          await fetchGames();
         } else {
           log('Login failed: ' + (json.message || json.error), 'error');
         }
@@ -55,19 +64,96 @@
         log('Login error: ' + err.message, 'error');
       }
     }
+    async function fetchGames() {
+      if (!currentToken) {
+        log('Login to fetch games', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/games', {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || json.error);
+
+        const games = json.data || json; // Adjust if `json` structure is different
+        const dropdown = document.getElementById('gameDropdown');
+        dropdown.innerHTML = ''; // Clear existing options
+
+
+        games.forEach(game => {
+          const option = document.createElement('option');
+          option.value = game.slug || game.id || game._id || game.name;
+          option.textContent = game.slug || game.name || game.title || `Game ${game.id}`;
+          dropdown.appendChild(option);
+        });
+
+        // Setup search filter
+        document.getElementById('searchGame').addEventListener('input', function () {
+          const term = this.value.toLowerCase();
+          Array.from(dropdown.options).forEach(opt => {
+            opt.style.display = opt.textContent.toLowerCase().includes(term) ? '' : 'none';
+          });
+        });
+        alert(JSON.stringify(games));
+        log('Games fetched and dropdown populated', 'success');
+      } catch (err) {
+        log('Error fetching games: ' + err.message, 'error');
+      }
+    }
+
+
+    let currentGameToken = null;
+
+    async function startGameFromDropdown() {
+      const dropdown = document.getElementById('gameDropdown');
+      const selectedOption = dropdown.options[dropdown.selectedIndex];
+      if (!selectedOption) {
+        log('No game selected', 'error');
+        return;
+      }
+
+      const slug = selectedOption.value;
+
+      try {
+        const res = await fetch(`/api/games/slug/${slug}/play`, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`, // login token
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.message || json.error);
+
+        currentGameToken = json.data.token || json.token;
+        document.getElementById('gameToken').textContent = currentGameToken;
+        document.getElementById('gameTokenDisplay').style.display = 'block';
+        log(`Game '${selectedOption.textContent}' started.`, 'success');
+      } catch (err) {
+        log('Error starting game: ' + err.message, 'error');
+      }
+    }
 
     function connectSocket() {
       const url = document.getElementById('serverUrl').value + '/playground';
-      if (!url || !currentToken) {
-        log('Server URL and token required', 'error');
+      if (!url || !currentGameToken) {
+        log('Server URL and game token required', 'error');
         return;
       }
-      // log(`url:${ url }tok:${ currentToken }`)
 
       socket = io(url, {
-        transports: ['websocket'], 
-        auth: { token: currentToken } 
+        transports: ['websocket'],
+        auth: {token: currentGameToken}
       });
+
       document.getElementById('status').textContent = 'Connecting...';
 
       socket.on('connect', () => updateStatus('Connected'));
@@ -87,7 +173,7 @@
       document.getElementById('status').textContent = text;
     }
 
-    function log(msg, type='info') {
+    function log(msg, type = 'info') {
       const div = document.createElement('div');
       div.textContent = `[${type.toUpperCase()}] ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
       document.getElementById('logContainer').appendChild(div);
@@ -105,4 +191,5 @@
     });
   </script>
 </body>
+
 </html>
