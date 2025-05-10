@@ -33,10 +33,10 @@
     <p>Status: <span id="status">Disconnected</span></p>
   </section>
 
-  <section id="gameControl" style="display:none;">
-    <h2>Game Input</h2>
-    <textarea id="gameInput" rows="30" style="width:100%; max-width:600px;"></textarea><br>
-    <button onclick="sendGameUpdate()">Update Game</button>
+  <section id="configEditorSection" style="display:none; margin-top:1em;">
+    <h3>Game Configuration</h3>
+    <textarea id="jsonEditor" rows="10" style="width:100%;"></textarea><br>
+    <button id="updateConfigBtn" disabled>Update Configuration</button>
   </section>
 
   <section id="logs">
@@ -48,6 +48,8 @@
   <script>
     let socket;
     let currentToken;
+
+
 
     async function login() {
       const username = document.getElementById("username").value;
@@ -107,7 +109,6 @@
             opt.style.display = opt.textContent.toLowerCase().includes(term) ? '' : 'none';
           });
         });
-        alert(JSON.stringify(games));
         log('Games fetched and dropdown populated', 'success');
       } catch (err) {
         log('Error fetching games: ' + err.message, 'error');
@@ -192,12 +193,19 @@
           log(`spin:result - ${JSON.stringify(data)}`, 'received');
         });
 
-        socket.on('game:config', (data) => {
-          log(`game:config - ${JSON.stringify(data)}`, 'received');
+        socket.on('game:config', (config) => {
+          try {
+            jsonEditor.value = JSON.stringify(config, null, 2);
+          } catch {
+            jsonEditor.value = config;
+          }
+          configEditorSection.style.display = 'block';
+          updateConfigBtn.disabled = false;
+          log('Config loaded into editor', 'info');
         });
 
         socket.onAny((ev, data) => {
-          log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received');
+          log(`Event [${ev}]: ${ev !== 'game:config' ? JSON.stringify(data) : "JSON"}`, 'received');
         });
 
       } catch (err) {
@@ -244,6 +252,32 @@
     window.addEventListener('beforeunload', () => {
       localStorage.setItem('mockClient.serverUrl', document.getElementById('serverUrl').value);
     });
+
+
+    // AFTER all your functions, but still inside the same <script>…
+
+    // 1. Grab editor elements
+    const configEditorSection = document.getElementById('configEditorSection');
+    const jsonEditor = document.getElementById('jsonEditor');
+    const updateConfigBtn = document.getElementById('updateConfigBtn');
+
+    // 2. Initial state
+    configEditorSection.style.display = 'none';
+    updateConfigBtn.disabled = true;
+
+    // 3. Keep the Update button wired once
+    updateConfigBtn.addEventListener('click', () => {
+      let updated;
+      try {
+        updated = JSON.parse(jsonEditor.value);
+      } catch (err) {
+        log('Invalid JSON: ' + err.message, 'error');
+        return;
+      }
+      socket.emit('game:config:update', updated);
+      log('Configuration update sent', 'success');
+    });
+
   </script>
 </body>
 
