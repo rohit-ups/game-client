@@ -5,11 +5,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mock Casino Client</title>
+  <title>Mock Client</title>
 </head>
 
 <body>
-  <h1>Mock Casino Client</h1>
+  <h1>Mock Client</h1>
 
   <section id="login">
     <input id="username" placeholder="Username" />
@@ -35,8 +35,8 @@
 
   <section id="configEditorSection" style="display:none; margin-top:1em;">
     <h3>Game Configuration</h3>
-    <textarea id="jsonEditor" rows="10" style="width:100%;"></textarea><br>
-    <button id="updateConfigBtn" disabled>Update Configuration</button>
+    <textarea id="jsonEditor" rows="20" style="width:100%;"></textarea><br>
+    <button id="updateConfigBtn" onclick="updateConfig()" disabled>Update Configuration</button>
   </section>
 
   <section id="logs">
@@ -48,6 +48,7 @@
   <script>
     let socket;
     let currentToken;
+    let isConnected = false;
 
 
 
@@ -170,12 +171,16 @@
         });
 
         socket.on('connect', () => {
+
+          isConnected = true;
           updateStatus('Connected');
           log('Connected to server', 'success');
           document.getElementById('gameControl').style.display = 'block';
         });
 
         socket.on('disconnect', () => {
+          isConnected = false;
+          jsonEditor.value = '';
           updateStatus('Disconnected');
           log('Disconnected from server', 'info');
         });
@@ -265,8 +270,9 @@
     configEditorSection.style.display = 'none';
     updateConfigBtn.disabled = true;
 
-    // 3. Keep the Update button wired once
-    updateConfigBtn.addEventListener('click', () => {
+
+    function updateConfig() {
+
       let updated;
       try {
         updated = JSON.parse(jsonEditor.value);
@@ -276,7 +282,7 @@
       }
       socket.emit('game:config:update', updated);
       log('Configuration update sent', 'success');
-    });
+    }
 
   </script>
 </body>
