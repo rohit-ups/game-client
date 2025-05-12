@@ -1,289 +1,262 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mock Client</title>
+  <title>Mock Casino Client</title>
+  <style>
+    /* Basic Layout Improvements */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 1em;
+    }
+
+    section {
+      margin-bottom: 1.5em;
+    }
+
+    #gameSelectorSection,
+    #socketSection,
+    #configEditorSection {
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+    }
+
+    #gameSelectorSection input,
+    #socketSection input,
+    #jsonEditor {
+      margin-bottom: 0.5em;
+      padding: 0.5em;
+      font-size: 1em;
+    }
+
+    #gameDropdown {
+      height: 8em;
+      margin-bottom: 0.5em;
+    }
+
+    button {
+      padding: 0.5em 1em;
+      font-size: 1em;
+      margin-right: 0.5em;
+    }
+
+    #logContainer {
+      max-width: 600px;
+    }
+  </style>
 </head>
 
 <body>
   <h1>Mock Client</h1>
 
-  <section id="login">
+  <section id="loginSection">
+    <h2>Login</h2>
     <input id="username" placeholder="Username" />
     <input id="password" type="password" placeholder="Password" />
-    <button onclick="login()">Login</button>
-    <p id="gameTokenDisplay" style="display:none;">
-      Game Token: <span id="gameToken"></span>
-    </p>
+    <button id="loginBtn">Login</button>
   </section>
 
-  <section id="gameSelector">
-    <h2>Select a Game</h2>
-    <input type="text" id="searchGame" placeholder="Search games..." />
-    <select id="gameDropdown" size="5" style="width: 300px;" onchange="startGameFromDropdown()"></select>
+  <section id="gameSelectorSection" hidden>
+    <h2>Select Game</h2>
+    <input id="searchGame" placeholder="Search games..." />
+    <select id="gameDropdown"></select>
   </section>
 
-  <section id="socket">
-    <input id="serverUrl" placeholder="Server URL" style="width:300px;" />
-    <button id="connectBtn" onclick="connectSocket()" disabled>Connect</button>
-    <button onclick="disconnectSocket()">Disconnect</button>
-    <p>Status: <span id="status">Disconnected</span></p>
+  <section id="socketSection" hidden>
+    <h2>Connection</h2>
+    <input id="serverUrl" placeholder="Server URL (e.g. http://localhost:5000/playground)" />
+    <div>
+      <button id="connectBtn" disabled>Connect</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
+    </div>
+    <p>Status: <span id="statusText">Disconnected</span></p>
   </section>
 
-  <section id="configEditorSection" style="display:none; margin-top:1em;">
-    <h3>Game Configuration</h3>
-    <textarea id="jsonEditor" rows="20" style="width:100%;"></textarea><br>
-    <button id="updateConfigBtn" onclick="updateConfig()" disabled>Update Configuration</button>
+  <p id="gameTokenDisplay" hidden>
+    <strong>Game Token:</strong> <span id="gameToken"></span>
+  </p>
+
+  <section id="configEditorSection" hidden>
+    <h2>Configuration Editor</h2>
+    <textarea id="jsonEditor" rows="10"></textarea><br>
+    <button id="updateConfigBtn" disabled>Update Configuration</button>
   </section>
 
-  <section id="logs">
+  <section id="logsSection">
     <h2>Logs</h2>
     <div id="logContainer" style="height:300px; overflow:auto; border:1px solid #ccc;"></div>
   </section>
 
   <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <script>
-    let socket;
-    let currentToken;
-    let isConnected = false;
+    (function () {
+      // Cache DOM elements
+      const loginBtn = document.getElementById('loginBtn');
+      const usernameInput = document.getElementById('username');
+      const passwordInput = document.getElementById('password');
+      const gameSelectorSection = document.getElementById('gameSelectorSection');
+      const searchInput = document.getElementById('searchGame');
+      const gameDropdown = document.getElementById('gameDropdown');
+      const socketSection = document.getElementById('socketSection');
+      const serverUrlInput = document.getElementById('serverUrl');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const statusText = document.getElementById('statusText');
+      const gameTokenDisplay = document.getElementById('gameTokenDisplay');
+      const gameTokenSpan = document.getElementById('gameToken');
+      const configEditorSection = document.getElementById('configEditorSection');
+      const jsonEditor = document.getElementById('jsonEditor');
+      const updateConfigBtn = document.getElementById('updateConfigBtn');
+      const logContainer = document.getElementById('logContainer');
 
+      // State
+      let socket = null;
+      let accessToken = null;
+      let gameToken = null;
+      let isConnected = false;
 
-
-    async function login() {
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({username, password})
-        });
-        const json = await res.json();
-        if (res.ok) {
-          currentToken = json.data.accessToken;
-          log('Login successful', 'success');
-          await fetchGames();
-        } else {
-          log('Login failed: ' + (json.message || json.error), 'error');
-        }
-      } catch (err) {
-        log('Login error: ' + err.message, 'error');
+      // Utilities
+      function log(msg, type = 'info') {
+        const entry = document.createElement('div');
+        entry.textContent = `[${type.toUpperCase()}] ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
+        logContainer.appendChild(entry);
+        entry.scrollIntoView();
       }
-    }
-    async function fetchGames() {
-      if (!currentToken) {
-        log('Login to fetch games', 'error');
-        return;
+      function toggleSection(section, show) {
+        section.hidden = !show;
+      }
+      function updateStatus(connected) {
+        isConnected = !!connected;
+        statusText.textContent = connected ? 'Connected' : 'Disconnected';
+        connectBtn.disabled = connected;
+        disconnectBtn.disabled = !connected;
+        // Hide editor on disconnect
+        if (!connected) toggleSection(configEditorSection, false);
       }
 
-      try {
-        const res = await fetch('/api/games', {
-          headers: {
-            'Authorization': `Bearer ${currentToken}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-
+      // API helper
+      async function apiFetch(url, opts = {}) {
+        const res = await fetch(url, opts);
         const json = await res.json();
-        if (!res.ok) throw new Error(json.message || json.error);
+        if (!res.ok) throw new Error(json.message || json.error || 'Request failed');
+        return json;
+      }
 
-        const games = json.data || json; // Adjust if `json` structure is different
-        const dropdown = document.getElementById('gameDropdown');
-        dropdown.innerHTML = ''; // Clear existing options
-
-
-        games.forEach(game => {
-          const option = document.createElement('option');
-          option.value = game.slug || game.id || game._id || game.name;
-          option.textContent = game.slug || game.name || game.title || `Game ${game.id}`;
-          dropdown.appendChild(option);
-        });
-
-        // Setup search filter
-        document.getElementById('searchGame').addEventListener('input', function () {
-          const term = this.value.toLowerCase();
-          Array.from(dropdown.options).forEach(opt => {
-            opt.style.display = opt.textContent.toLowerCase().includes(term) ? '' : 'none';
+      // Login
+      loginBtn.addEventListener('click', async () => {
+        try {
+          const {data} = await apiFetch('/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              username: usernameInput.value,
+              password: passwordInput.value
+            }),
+            credentials: 'include'
           });
+
+          accessToken = data.accessToken;
+          log('Logged in', 'success');
+          toggleSection(gameSelectorSection, true);
+          await loadGames();
+        } catch (err) {
+          log(err.message, 'error');
+        }
+      });
+
+      // Load games
+      async function loadGames() {
+        try {
+          const {data} = await apiFetch('/api/games', {
+            headers: {'Authorization': `Bearer ${accessToken}`},
+            credentials: 'include'
+          });
+          populateGames(data);
+        } catch (err) {
+          log('Fetch games error: ' + err.message, 'error');
+        }
+      }
+      function populateGames(games) {
+        gameDropdown.innerHTML = '';
+        games.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.slug;
+          opt.textContent = g.name || g.slug;
+          gameDropdown.appendChild(opt);
         });
-        log('Games fetched and dropdown populated', 'success');
-      } catch (err) {
-        log('Error fetching games: ' + err.message, 'error');
-      }
-    }
-
-
-    let currentGameToken = null;
-
-    async function startGameFromDropdown() {
-      const dropdown = document.getElementById('gameDropdown');
-      const selectedOption = dropdown.options[dropdown.selectedIndex];
-      if (!selectedOption) {
-        log('No game selected', 'error');
-        return;
-      }
-
-      const slug = selectedOption.value;
-
-      try {
-        const res = await fetch(`/api/games/slug/${slug}/play`, {
-          headers: {
-            'Authorization': `Bearer ${currentToken}`, // login token
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.message || json.error);
-
-        const fullUrl = json.data.token || json.token;
-        const parsedToken = new URL(fullUrl).searchParams.get('token');
-        currentGameToken = parsedToken;
-
-        document.getElementById('gameToken').textContent = currentGameToken;
-        document.getElementById('gameTokenDisplay').style.display = 'block';
-        log(`Game '${selectedOption.textContent}' started.`, 'success');
-
-        document.getElementById('connectBtn').disabled = false;
-      } catch (err) {
-        log('Error starting game: ' + err.message, 'error');
-      }
-    }
-
-    function connectSocket() {
-      if (!currentGameToken) {
-        log('No game token available. Start a game first.', 'error');
-        return;
       }
 
-      try {
-        updateStatus('Connecting...');
-        log('Connecting to server...', 'info');
-
-        socket = io('http://localhost:5000/playground', {
-          transports: ['websocket'],
-          auth: {token: currentGameToken}
+      // Filter games
+      searchInput.addEventListener('input', () => {
+        const term = searchInput.value.toLowerCase();
+        gameDropdown.querySelectorAll('option').forEach(opt => {
+          opt.hidden = !opt.textContent.toLowerCase().includes(term);
         });
+      });
 
-        socket.on('connect', () => {
+      // Start game
+      gameDropdown.addEventListener('change', async () => {
+        try {
+          const slug = gameDropdown.value;
+          const {data} = await apiFetch(`/api/games/slug/${slug}/play`, {
+            headers: {'Authorization': `Bearer ${accessToken}`},
+            credentials: 'include'
+          });
 
-          isConnected = true;
-          updateStatus('Connected');
-          log('Connected to server', 'success');
-          document.getElementById('gameControl').style.display = 'block';
+          gameToken = new URL(data.token).searchParams.get('token');
+          gameTokenSpan.textContent = gameToken;
+
+          toggleSection(gameTokenDisplay, true);
+          toggleSection(socketSection, true);
+          connectBtn.disabled = false;
+          serverUrlInput.value = serverUrlInput.value || 'http://localhost:5000/playground';
+
+          log(`Game ${slug} started`, 'success');
+        } catch (err) {
+          log('Start game error: ' + err.message, 'error');
+        }
+      });
+
+      // Socket connect/disconnect
+      connectBtn.addEventListener('click', () => {
+        socket = io(serverUrlInput.value, {transports: ['websocket'], auth: {token: gameToken}});
+
+        socket.on('connect', () => updateStatus(true));
+        socket.on('disconnect', () => updateStatus(false));
+        socket.on('game:config', cfg => {
+          jsonEditor.value = JSON.stringify(cfg, null, 2);
+          toggleSection(configEditorSection, true);
+          log('Config loaded', 'info');
         });
+        socket.onAny((ev, data) => log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received'));
+      });
+      disconnectBtn.addEventListener('click', () => socket && socket.disconnect());
 
-        socket.on('disconnect', () => {
-          isConnected = false;
-          jsonEditor.value = '';
-          updateStatus('Disconnected');
-          log('Disconnected from server', 'info');
-        });
-
-        socket.on('connect_error', (error) => {
-          updateStatus('Disconnected');
-          log(`Connection error: ${error.message}`, 'error');
-        });
-
-        socket.on('error', (error) => {
-          log(`Socket error: ${error.message || error}`, 'error');
-        });
-
-        socket.on('spin:result', (data) => {
-          log(`spin:result - ${JSON.stringify(data)}`, 'received');
-        });
-
-        socket.on('game:config', (config) => {
-          try {
-            jsonEditor.value = JSON.stringify(config, null, 2);
-          } catch {
-            jsonEditor.value = config;
-          }
-          configEditorSection.style.display = 'block';
+      jsonEditor.addEventListener('input', () => {
+        try {
+          JSON.parse(jsonEditor.value);
           updateConfigBtn.disabled = false;
-          log('Config loaded into editor', 'info');
-        });
+        } catch (e) {
+          updateConfigBtn.disabled = true;
+        }
+      });
 
-        socket.onAny((ev, data) => {
-          log(`Event [${ev}]: ${ev !== 'game:config' ? JSON.stringify(data) : "JSON"}`, 'received');
-        });
+      // Update config
+      updateConfigBtn.addEventListener('click', () => {
+        if (!socket || !isConnected) return log('Not connected', 'error');
+        try {
+          const updated = JSON.parse(jsonEditor.value);
+          socket.emit('game:config:update', updated);
+          log('Config update sent', 'sent');
+        } catch (e) {
+          log('Invalid JSON: ' + e.message, 'error');
+        }
+      });
 
-      } catch (err) {
-        log('Failed to connect: ' + err.message, 'error');
-      }
-    }
-
-    function disconnectSocket() {
-      if (socket) {
-        socket.disconnect();
-        updateStatus('Disconnected');
-      }
-    }
-
-
-    function sendGameUpdate() {
-      const payload = document.getElementById('gameInput').value;
-      try {
-        const json = JSON.parse(payload);
-        socket.emit('game:update', json); // adjust event name as needed
-        log('Game update sent', 'success');
-      } catch (err) {
-        log('Invalid JSON: ' + err.message, 'error');
-      }
-    }
-
-    function updateStatus(text) {
-      document.getElementById('status').textContent = text;
-    }
-
-    function log(msg, type = 'info') {
-      const div = document.createElement('div');
-      div.textContent = `[${type.toUpperCase()}] ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
-      document.getElementById('logContainer').appendChild(div);
-      div.scrollIntoView();
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('serverUrl').value =
-        localStorage.getItem('mockClient.serverUrl') ||
-        'http://localhost:5000/playground';
-    });
-
-    window.addEventListener('beforeunload', () => {
-      localStorage.setItem('mockClient.serverUrl', document.getElementById('serverUrl').value);
-    });
-
-
-    // AFTER all your functions, but still inside the same <script>…
-
-    // 1. Grab editor elements
-    const configEditorSection = document.getElementById('configEditorSection');
-    const jsonEditor = document.getElementById('jsonEditor');
-    const updateConfigBtn = document.getElementById('updateConfigBtn');
-
-    // 2. Initial state
-    configEditorSection.style.display = 'none';
-    updateConfigBtn.disabled = true;
-
-
-    function updateConfig() {
-
-      let updated;
-      try {
-        updated = JSON.parse(jsonEditor.value);
-      } catch (err) {
-        log('Invalid JSON: ' + err.message, 'error');
-        return;
-      }
-      socket.emit('game:config:update', updated);
-      log('Configuration update sent', 'success');
-    }
-
+    })();
   </script>
 </body>
 
