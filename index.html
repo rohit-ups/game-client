@@ -6,94 +6,465 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mock Casino Client</title>
   <style>
-    /* Basic Layout Improvements */
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-light: #60a5fa;
+      --success: #10b981;
+      --error: #ef4444;
+      --dark: #1f2937;
+      --light: #f3f4f6;
+      --border: #d1d5db;
+      --bg-light: #f9fafb;
+      --text-light: #1f2937;
+      --bg-dark: #111827;
+      --card-dark: #1f2937;
+      --text-dark: #f3f4f6;
+      --border-dark: #374151;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Theme toggle */
+    .theme-switch {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 0.5rem;
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .theme-switch:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    /* Light theme (default) */
     body {
-      font-family: Arial, sans-serif;
-      margin: 1em;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      line-height: 1.6;
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 0.5rem;
+      transition: border-color 0.3s ease;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--dark);
+      transition: color 0.3s ease;
     }
 
     section {
-      margin-bottom: 1.5em;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
     }
 
-    #gameSelectorSection,
-    #socketSection,
-    #configEditorSection {
-      display: flex;
-      flex-direction: column;
-      max-width: 600px;
+    section:hover {
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
     }
 
-    #gameSelectorSection input,
-    #socketSection input,
-    #jsonEditor {
-      margin-bottom: 0.5em;
-      padding: 0.5em;
-      font-size: 1em;
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+      background-color: white;
+      color: var(--text-light);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
     #gameDropdown {
-      height: 8em;
-      margin-bottom: 0.5em;
+      height: 10rem;
     }
 
     button {
-      padding: 0.5em 1em;
-      font-size: 1em;
-      margin-right: 0.5em;
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-right: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    button:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
     }
 
     #logContainer {
-      max-width: 600px;
+      height: 350px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem;
+      background-color: #f8fafc;
+      font-family: monospace;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    #logContainer div {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      transition: border-color 0.3s ease;
+    }
+
+    #logContainer div:last-child {
+      border-bottom: none;
+    }
+
+    #statusText {
+      font-weight: bold;
+      color: var(--error);
+    }
+
+    #statusText.connected {
+      color: var(--success);
+    }
+
+    #gameTokenDisplay {
+      background-color: #f0f9ff;
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      margin-bottom: 2rem;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    #gameToken {
+      font-family: monospace;
+      word-break: break-all;
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      background-color: #e0f2fe;
+      border-radius: 3px;
+      transition: all 0.3s ease;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background-color: #e5e7eb;
+      border-radius: 2px;
+      margin-top: 0.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 30%;
+      background-color: var(--primary);
+      animation: progress 1s infinite ease-in-out;
+      border-radius: 2px;
+    }
+
+    @keyframes progress {
+      0% {
+        left: -30%;
+      }
+
+      100% {
+        left: 100%;
+      }
+    }
+
+    .dark-theme .progress-bar {
+      background-color: #374151;
+    }
+
+    /* Tooltip styling */
+    [data-tooltip] {
+      position: relative;
+      cursor: help;
+    }
+
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.5rem;
+      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      z-index: 10;
+    }
+
+    [data-tooltip]:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Log types - Light theme */
+    .log-info {
+      color: #3b82f6;
+    }
+
+    .log-error {
+      color: #ef4444;
+    }
+
+    .log-success {
+      color: #10b981;
+    }
+
+    .log-received {
+      color: #8b5cf6;
+    }
+
+    .log-sent {
+      color: #f59e0b;
+    }
+
+    /* Dark theme */
+    body.dark-theme {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .dark-theme h1 {
+      color: var(--primary-light);
+      border-bottom-color: var(--primary-light);
+    }
+
+    .dark-theme h2 {
+      color: var(--text-dark);
+    }
+
+    .dark-theme section {
+      background-color: var(--card-dark);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .dark-theme section:hover {
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+    }
+
+    .dark-theme input,
+    .dark-theme select,
+    .dark-theme textarea {
+      background-color: #374151;
+      border-color: var(--border-dark);
+      color: var(--text-dark);
+    }
+
+    .dark-theme input:focus,
+    .dark-theme select:focus,
+    .dark-theme textarea:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+
+    .dark-theme button {
+      background-color: var(--primary);
+    }
+
+    .dark-theme button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .dark-theme button:disabled {
+      background-color: #4b5563;
+    }
+
+    .dark-theme #logContainer {
+      background-color: #111827;
+      border-color: var(--border-dark);
+    }
+
+    .dark-theme #logContainer div {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .dark-theme #gameTokenDisplay {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-left-color: var(--primary-light);
+    }
+
+    .dark-theme #gameToken {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: var(--text-dark);
+    }
+
+    /* Log types - Dark theme */
+    .dark-theme .log-info {
+      color: #60a5fa;
+    }
+
+    .dark-theme .log-error {
+      color: #f87171;
+    }
+
+    .dark-theme .log-success {
+      color: #34d399;
+    }
+
+    .dark-theme .log-received {
+      color: #a78bfa;
+    }
+
+    .dark-theme .log-sent {
+      color: #fbbf24;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Responsiveness */
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+
+      section {
+        padding: 1rem;
+      }
+
+      .theme-switch {
+        top: 0.5rem;
+        right: 0.5rem;
+      }
     }
   </style>
 </head>
 
 <body>
-  <h1>Mock Client</h1>
+  <h1>Mock Casino Client</h1>
 
   <section id="loginSection">
     <h2>Login</h2>
     <input id="username" placeholder="Username" />
     <input id="password" type="password" placeholder="Password" />
     <button id="loginBtn">Login</button>
+    <div class="progress-bar" id="loginProgress" hidden></div>
   </section>
 
   <section id="gameSelectorSection" hidden>
     <h2>Select Game</h2>
     <input id="searchGame" placeholder="Search games..." />
-    <select id="gameDropdown"></select>
+    <select id="gameDropdown" size="8"></select>
   </section>
+
+  <div id="gameTokenDisplay" hidden>
+    <strong>Game Token:</strong> <span id="gameToken"></span>
+  </div>
 
   <section id="socketSection" hidden>
     <h2>Connection</h2>
     <input id="serverUrl" placeholder="Server URL (e.g. http://localhost:5000/playground)" />
-    <div>
+    <div class="button-group">
       <button id="connectBtn" disabled>Connect</button>
       <button id="disconnectBtn" disabled>Disconnect</button>
     </div>
     <p>Status: <span id="statusText">Disconnected</span></p>
   </section>
 
-  <p id="gameTokenDisplay" hidden>
-    <strong>Game Token:</strong> <span id="gameToken"></span>
-  </p>
-
   <section id="configEditorSection" hidden>
     <h2>Configuration Editor</h2>
-    <textarea id="jsonEditor" rows="10"></textarea><br>
+    <textarea id="jsonEditor" rows="10"></textarea>
     <button id="updateConfigBtn" disabled>Update Configuration</button>
   </section>
 
   <section id="logsSection">
     <h2>Logs</h2>
-    <div id="logContainer" style="height:300px; overflow:auto; border:1px solid #ccc;"></div>
+    <div id="logContainer"></div>
   </section>
 
   <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <script>
     (function () {
+      // Create and add theme toggle button to the page
+      const themeBtn = document.createElement('button');
+      themeBtn.className = 'theme-switch';
+      themeBtn.id = 'themeToggle';
+      themeBtn.innerHTML = '🌙';
+      themeBtn.setAttribute('title', 'Toggle dark mode');
+      document.body.appendChild(themeBtn);
+
       // Cache DOM elements
+      const body = document.body;
       const loginBtn = document.getElementById('loginBtn');
       const usernameInput = document.getElementById('username');
       const passwordInput = document.getElementById('password');
@@ -111,26 +482,32 @@
       const jsonEditor = document.getElementById('jsonEditor');
       const updateConfigBtn = document.getElementById('updateConfigBtn');
       const logContainer = document.getElementById('logContainer');
+      const themeSwitch = document.getElementById('themeToggle');
 
       // State
       let socket = null;
       let accessToken = null;
       let gameToken = null;
       let isConnected = false;
+      let darkMode = localStorage.getItem('darkMode') === 'true';
 
       // Utilities
       function log(msg, type = 'info') {
         const entry = document.createElement('div');
+        entry.className = `log-${type}`;
         entry.textContent = `[${type.toUpperCase()}] ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
         logContainer.appendChild(entry);
         entry.scrollIntoView();
       }
+
       function toggleSection(section, show) {
         section.hidden = !show;
       }
+
       function updateStatus(connected) {
         isConnected = !!connected;
         statusText.textContent = connected ? 'Connected' : 'Disconnected';
+        statusText.className = connected ? 'connected' : '';
         connectBtn.disabled = connected;
         disconnectBtn.disabled = !connected;
         // Hide editor on disconnect
@@ -139,15 +516,25 @@
 
       // API helper
       async function apiFetch(url, opts = {}) {
-        const res = await fetch(url, opts);
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.message || json.error || 'Request failed');
-        return json;
+        try {
+          const res = await fetch(url, opts);
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.message || json.error || 'Request failed');
+          return json;
+        } catch (err) {
+          log(err.message, 'error');
+          throw err;
+        }
       }
 
       // Login
       loginBtn.addEventListener('click', async () => {
         try {
+          // Show progress bar
+          const loginProgress = document.getElementById('loginProgress');
+          loginProgress.hidden = false;
+          loginBtn.disabled = true;
+
           const {data} = await apiFetch('/api/auth/login', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -159,11 +546,33 @@
           });
 
           accessToken = data.accessToken;
-          log('Logged in', 'success');
+          log('Logged in successfully', 'success');
           toggleSection(gameSelectorSection, true);
           await loadGames();
+
+          // Success animation
+          loginProgress.style.width = '100%';
+          setTimeout(() => {
+            loginProgress.hidden = true;
+            loginBtn.disabled = false;
+          }, 500);
         } catch (err) {
-          log(err.message, 'error');
+          log(`Login failed: ${err.message}`, 'error');
+          document.getElementById('loginProgress').hidden = true;
+          loginBtn.disabled = false;
+
+          // Shake animation for error
+          loginBtn.style.animation = 'shake 0.5s';
+          setTimeout(() => {
+            loginBtn.style.animation = '';
+          }, 500);
+        }
+      });
+
+      // Also trigger login on Enter key in password field
+      passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          loginBtn.click();
         }
       });
 
@@ -175,10 +584,12 @@
             credentials: 'include'
           });
           populateGames(data);
+          log(`Loaded ${data.length} games`, 'info');
         } catch (err) {
           log('Fetch games error: ' + err.message, 'error');
         }
       }
+
       function populateGames(games) {
         gameDropdown.innerHTML = '';
         games.forEach(g => {
@@ -214,26 +625,49 @@
           connectBtn.disabled = false;
           serverUrlInput.value = serverUrlInput.value || 'http://localhost:5000/playground';
 
-          log(`Game ${slug} started`, 'success');
+          log(`Game "${slug}" started successfully`, 'success');
         } catch (err) {
-          log('Start game error: ' + err.message, 'error');
+          log(`Start game error: ${err.message}`, 'error');
         }
       });
 
       // Socket connect/disconnect
       connectBtn.addEventListener('click', () => {
-        socket = io(serverUrlInput.value, {transports: ['websocket'], auth: {token: gameToken}});
+        try {
+          socket = io(serverUrlInput.value, {transports: ['websocket'], auth: {token: gameToken}});
 
-        socket.on('connect', () => updateStatus(true));
-        socket.on('disconnect', () => updateStatus(false));
-        socket.on('game:config', cfg => {
-          jsonEditor.value = JSON.stringify(cfg, null, 2);
-          toggleSection(configEditorSection, true);
-          log('Config loaded', 'info');
-        });
-        socket.onAny((ev, data) => log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received'));
+          socket.on('connect', () => {
+            updateStatus(true);
+            log('Socket connected', 'success');
+          });
+
+          socket.on('disconnect', () => {
+            updateStatus(false);
+            log('Socket disconnected', 'info');
+          });
+
+          socket.on('connect_error', (err) => {
+            log(`Connection error: ${err.message}`, 'error');
+          });
+
+          socket.on('game:config', cfg => {
+            jsonEditor.value = JSON.stringify(cfg, null, 2);
+            toggleSection(configEditorSection, true);
+            log('Game configuration received', 'info');
+          });
+
+          socket.onAny((ev, data) => log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received'));
+        } catch (err) {
+          log(`Socket error: ${err.message}`, 'error');
+        }
       });
-      disconnectBtn.addEventListener('click', () => socket && socket.disconnect());
+
+      disconnectBtn.addEventListener('click', () => {
+        if (socket) {
+          socket.disconnect();
+          log('Disconnected from server', 'info');
+        }
+      });
 
       jsonEditor.addEventListener('input', () => {
         try {
@@ -246,16 +680,99 @@
 
       // Update config
       updateConfigBtn.addEventListener('click', () => {
-        if (!socket || !isConnected) return log('Not connected', 'error');
+        if (!socket || !isConnected) return log('Not connected to server', 'error');
         try {
           const updated = JSON.parse(jsonEditor.value);
           socket.emit('game:config:update', updated);
-          log('Config update sent', 'sent');
+          log('Configuration update sent', 'sent');
         } catch (e) {
-          log('Invalid JSON: ' + e.message, 'error');
+          log(`Invalid JSON: ${e.message}`, 'error');
         }
       });
 
+      // Theme toggle functionality
+      function setTheme(isDark) {
+        darkMode = isDark;
+        if (isDark) {
+          body.classList.add('dark-theme');
+          themeSwitch.innerHTML = '☀️';
+          themeSwitch.setAttribute('title', 'Switch to light mode');
+        } else {
+          body.classList.remove('dark-theme');
+          themeSwitch.innerHTML = '🌙';
+          themeSwitch.setAttribute('title', 'Switch to dark mode');
+        }
+        localStorage.setItem('darkMode', isDark);
+      }
+
+      // Initialize theme
+      setTheme(darkMode);
+
+      // Theme toggle event handler
+      themeSwitch.addEventListener('click', () => {
+        setTheme(!darkMode);
+      });
+
+      // Keyboard shortcut for theme toggle (Ctrl+Shift+D)
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+          e.preventDefault();
+          setTheme(!darkMode);
+        }
+      });
+
+      // Format JSON in editor with shortcut (Ctrl+Shift+F)
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'F' && document.activeElement === jsonEditor) {
+          e.preventDefault();
+          try {
+            const parsed = JSON.parse(jsonEditor.value);
+            jsonEditor.value = JSON.stringify(parsed, null, 2);
+            log('JSON formatted', 'info');
+          } catch (err) {
+            log('Cannot format invalid JSON', 'error');
+          }
+        }
+      });
+
+      // Copy game token with click
+      gameTokenSpan.addEventListener('click', () => {
+        if (gameToken) {
+          navigator.clipboard.writeText(gameToken)
+            .then(() => {
+              log('Game token copied to clipboard', 'success');
+
+              // Visual feedback
+              const originalBg = gameTokenSpan.style.backgroundColor;
+              gameTokenSpan.style.backgroundColor = darkMode ? '#34d399' : '#10b981';
+              gameTokenSpan.style.color = '#ffffff';
+
+              setTimeout(() => {
+                gameTokenSpan.style.backgroundColor = '';
+                gameTokenSpan.style.color = '';
+              }, 500);
+            })
+            .catch(err => log('Failed to copy: ' + err, 'error'));
+        }
+      });
+
+      // Add tooltips
+      gameTokenSpan.title = 'Click to copy to clipboard';
+
+      // Add section animations
+      const sections = document.querySelectorAll('section');
+      sections.forEach(section => {
+        section.classList.add('fade-in');
+      });
+
+      // Set initial focus on username
+      usernameInput.focus();
+
+      // Initial log
+      log('Client initialized and ready', 'info');
+      log('Tip: Press Ctrl+Shift+D to toggle dark mode', 'info');
+      log('Tip: Click on game token to copy it', 'info');
+      log('Tip: Press Ctrl+Shift+F to format JSON in the editor', 'info');
     })();
   </script>
 </body>
