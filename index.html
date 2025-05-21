@@ -1,869 +1,818 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Socket.IO Connection Tester</title>
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <style>
-      :root {
-        --primary-color: #4a90e2;
-        --success-color: #2ecc71;
-        --error-color: #e74c3c;
-        --warning-color: #f1c40f;
-        --background-color: #f5f6fa;
-        --card-background: #ffffff;
-        --text-color: #2c3e50;
-        --border-color: #dcdde1;
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mock Casino Client</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-dark: #2563eb;
+      --primary-light: #60a5fa;
+      --success: #10b981;
+      --error: #ef4444;
+      --dark: #1f2937;
+      --light: #f3f4f6;
+      --border: #d1d5db;
+      --bg-light: #f9fafb;
+      --text-light: #1f2937;
+      --bg-dark: #111827;
+      --card-dark: #1f2937;
+      --text-dark: #f3f4f6;
+      --border-dark: #374151;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Theme toggle */
+    .theme-switch {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 0.5rem;
+      border-radius: 50%;
+      width: 2.5rem;
+      height: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+
+    .theme-switch:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    /* Light theme (default) */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      line-height: 1.6;
+      padding: 2rem;
+      max-width: 900px;
+      margin: 0 auto;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 0.5rem;
+      transition: border-color 0.3s ease;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--dark);
+      transition: color 0.3s ease;
+    }
+
+    section {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+    }
+
+    section:hover {
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+      background-color: white;
+      color: var(--text-light);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    #gameDropdown {
+      height: 10rem;
+    }
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-right: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    button:disabled {
+      background-color: #9ca3af;
+      cursor: not-allowed;
+    }
+
+    #logContainer {
+      height: 350px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem;
+      background-color: #f8fafc;
+      font-family: monospace;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+    }
+
+    #logContainer div {
+      padding: 0.3rem 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      transition: border-color 0.3s ease;
+    }
+
+    #logContainer div:last-child {
+      border-bottom: none;
+    }
+
+    #statusText {
+      font-weight: bold;
+      color: var(--error);
+    }
+
+    #statusText.connected {
+      color: var(--success);
+    }
+
+    #gameTokenDisplay {
+      background-color: #f0f9ff;
+      border-left: 4px solid var(--primary);
+      padding: 1rem;
+      margin-bottom: 2rem;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+    }
+
+    #gameToken {
+      font-family: monospace;
+      word-break: break-all;
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      background-color: #e0f2fe;
+      border-radius: 3px;
+      transition: all 0.3s ease;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background-color: #e5e7eb;
+      border-radius: 2px;
+      margin-top: 0.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 30%;
+      background-color: var(--primary);
+      animation: progress 1s infinite ease-in-out;
+      border-radius: 2px;
+    }
+
+    @keyframes progress {
+      0% {
+        left: -30%;
       }
 
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      100% {
+        left: 100%;
+      }
+    }
+
+    .dark-theme .progress-bar {
+      background-color: #374151;
+    }
+
+    /* Tooltip styling */
+    [data-tooltip] {
+      position: relative;
+      cursor: help;
+    }
+
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.5rem;
+      border-radius: 4px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s, visibility 0.3s;
+      z-index: 10;
+    }
+
+    [data-tooltip]:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Log types - Light theme */
+    .log-info {
+      color: #3b82f6;
+    }
+
+    .log-error {
+      color: #ef4444;
+    }
+
+    .log-success {
+      color: #10b981;
+    }
+
+    .log-received {
+      color: #8b5cf6;
+    }
+
+    .log-sent {
+      color: #f59e0b;
+    }
+
+    /* Dark theme */
+    body.dark-theme {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    .dark-theme h1 {
+      color: var(--primary-light);
+      border-bottom-color: var(--primary-light);
+    }
+
+    .dark-theme h2 {
+      color: var(--text-dark);
+    }
+
+    .dark-theme section {
+      background-color: var(--card-dark);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    }
+
+    .dark-theme section:hover {
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+    }
+
+    .dark-theme input,
+    .dark-theme select,
+    .dark-theme textarea {
+      background-color: #374151;
+      border-color: var(--border-dark);
+      color: var(--text-dark);
+    }
+
+    .dark-theme input:focus,
+    .dark-theme select:focus,
+    .dark-theme textarea:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+
+    .dark-theme button {
+      background-color: var(--primary);
+    }
+
+    .dark-theme button:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .dark-theme button:disabled {
+      background-color: #4b5563;
+    }
+
+    .dark-theme #logContainer {
+      background-color: #111827;
+      border-color: var(--border-dark);
+    }
+
+    .dark-theme #logContainer div {
+      border-bottom-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .dark-theme #gameTokenDisplay {
+      background-color: rgba(59, 130, 246, 0.1);
+      border-left-color: var(--primary-light);
+    }
+
+    .dark-theme #gameToken {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: var(--text-dark);
+    }
+
+    /* Log types - Dark theme */
+    .dark-theme .log-info {
+      color: #60a5fa;
+    }
+
+    .dark-theme .log-error {
+      color: #f87171;
+    }
+
+    .dark-theme .log-success {
+      color: #34d399;
+    }
+
+    .dark-theme .log-received {
+      color: #a78bfa;
+    }
+
+    .dark-theme .log-sent {
+      color: #fbbf24;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
       }
 
+      to {
+        opacity: 1;
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* Responsiveness */
+    @media (max-width: 600px) {
       body {
-        background-color: var(--background-color);
-        color: var(--text-color);
-        line-height: 1.6;
-        padding: 20px;
+        padding: 1rem;
       }
 
-      .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
+      section {
+        padding: 1rem;
       }
 
-      .header {
-        text-align: center;
-        margin-bottom: 30px;
+      .theme-switch {
+        top: 0.5rem;
+        right: 0.5rem;
       }
+    }
+  </style>
+</head>
 
-      .header h1 {
-        color: var(--primary-color);
-        margin-bottom: 10px;
-      }
+<body>
+  <h1>Mock Casino Client</h1>
 
-      .card {
-        background: var(--card-background);
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      }
+  <section id="loginSection">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username" />
+    <input id="password" type="password" placeholder="Password" />
+    <button id="loginBtn">Login</button>
+    <div class="progress-bar" id="loginProgress" hidden></div>
+  </section>
 
-      .form-group {
-        margin-bottom: 15px;
-      }
+  <section id="gameSelectorSection" hidden>
+    <h2>Select Game</h2>
+    <input id="searchGame" placeholder="Search games..." />
+    <select id="gameDropdown" size="8"></select>
+  </section>
 
-      label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 600;
-      }
+  <div id="gameTokenDisplay" hidden>
+    <strong>Game Token:</strong> <span id="gameToken"></span>
+  </div>
 
-      input[type="text"],
-      input[type="number"],
-      input[type="password"],
-      select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 5px;
-        font-size: 14px;
-      }
-
-      .button-group {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 15px;
-      }
-
-      button {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: all 0.3s ease;
-      }
-
-      button:hover {
-        opacity: 0.9;
-      }
-
-      .connect-btn {
-        background-color: var(--primary-color);
-        color: white;
-      }
-
-      .disconnect-btn {
-        background-color: var(--error-color);
-        color: white;
-      }
-
-      .load-token-btn {
-        background-color: var(--warning-color);
-        color: var(--text-color);
-      }
-
-      .status {
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 15px;
-        font-weight: 600;
-      }
-
-      .status.connected {
-        background-color: var(--success-color);
-        color: white;
-      }
-
-      .status.disconnected {
-        background-color: var(--error-color);
-        color: white;
-      }
-
-      .log-container {
-        background-color: #1e1e1e;
-        color: #fff;
-        padding: 15px;
-        border-radius: 5px;
-        height: 300px;
-        overflow-y: auto;
-        font-family: "Courier New", Courier, monospace;
-        margin-top: 20px;
-      }
-
-      .log-entry {
-        margin-bottom: 5px;
-        padding: 5px;
-        border-bottom: 1px solid #333;
-      }
-
-      .log-entry.info {
-        color: #4a90e2;
-      }
-      .log-entry.success {
-        color: #2ecc71;
-      }
-      .log-entry.error {
-        color: #e74c3c;
-      }
-      .log-entry.warning {
-        color: #f1c40f;
-      }
-      .log-entry.platform {
-        border-left: 3px solid #4a90e2;
-      }
-      .log-entry.game {
-        border-left: 3px solid #2ecc71;
-      }
-
-      .log-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-      }
-
-      .log-filters {
-        display: flex;
-        gap: 10px;
-      }
-
-      .log-filter {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-        border-radius: 5px;
-        background-color: var(--card-background);
-        cursor: pointer;
-        user-select: none;
-      }
-
-      .log-filter.active {
-        background-color: var(--primary-color);
-        color: white;
-      }
-
-      .clear-logs-btn {
-        background-color: var(--error-color);
-        color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-
-      .clear-logs-btn:hover {
-        opacity: 0.9;
-      }
-
-      .settings-card {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 20px;
-      }
-
-      @media (max-width: 768px) {
-        .container {
-          padding: 10px;
-        }
-
-        .button-group {
-          flex-direction: column;
-        }
-
-        button {
-          width: 100%;
-        }
-      }
-
-      .login-form {
-        background: var(--card-background);
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      }
-
-      .login-form h2 {
-        margin-bottom: 15px;
-        color: var(--primary-color);
-      }
-
-      .login-form input {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 10px;
-        border: 1px solid var(--border-color);
-        border-radius: 5px;
-      }
-
-      .login-form button {
-        width: 100%;
-        background-color: var(--primary-color);
-        color: white;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-
-      .login-form button:hover {
-        opacity: 0.9;
-      }
-
-      .token-display {
-        background: #f8f9fa;
-        padding: 10px;
-        border-radius: 5px;
-        margin-top: 10px;
-        word-break: break-all;
-      }
-
-      .save-token-btn {
-        background-color: var(--success-color);
-        color: white;
-        margin-top: 10px;
-      }
-
-      .send-btn {
-        background-color: var(--primary-color);
-        color: white;
-        margin-top: 10px;
-        width: 100%;
-      }
-
-      .message-input-group {
-        display: flex;
-        gap: 10px;
-        margin-top: 10px;
-      }
-
-      .message-input-group input {
-        flex: 1;
-      }
-
-      .message-input-group button {
-        width: auto;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h1>Socket.IO Connection Tester</h1>
-        <p>Test your Socket.IO connections with ease</p>
-      </div>
-
-      <div class="settings-card">
-        <div class="card">
-          <h2>Authentication</h2>
-          <div class="login-form">
-            <input type="text" id="username" placeholder="Username" />
-            <input type="password" id="password" placeholder="Password" />
-            <button onclick="login()">Login</button>
-            <div id="tokenDisplay" class="token-display" style="display: none">
-              <strong>Token:</strong> <span id="token"></span>
-              <button class="save-token-btn" onclick="saveToken()">
-                Save Token to File
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Platform Socket Settings</h2>
-          <div class="form-group">
-            <label for="platformUrl">Platform URL:</label>
-            <input
-              type="text"
-              id="platformUrl"
-              value="http://localhost:5000"
-              placeholder="Enter platform URL"
-            />
-          </div>
-          <div class="form-group">
-            <label for="platformId">Platform ID:</label>
-            <input
-              type="text"
-              id="platformId"
-              value="test-platform"
-              placeholder="Enter platform ID"
-            />
-          </div>
-          <div class="form-group">
-            <label for="origin">Origin:</label>
-            <input
-              type="text"
-              id="origin"
-              value="test-origin"
-              placeholder="Enter origin"
-            />
-          </div>
-          <div class="button-group">
-            <button class="connect-btn" onclick="connectPlatform()">
-              Connect Platform
-            </button>
-            <button class="disconnect-btn" onclick="disconnectPlatform()">
-              Disconnect Platform
-            </button>
-          </div>
-          <div id="platformStatus" class="status disconnected">
-            Disconnected
-          </div>
-        </div>
-
-        <div class="card">
-          <h2>Game Socket Settings</h2>
-          <div class="form-group">
-            <label for="gameUrl">Game URL:</label>
-            <input
-              type="text"
-              id="gameUrl"
-              value="http://localhost:3001"
-              placeholder="Enter game URL"
-            />
-          </div>
-          <div class="form-group">
-            <label for="gameId">Game ID:</label>
-            <input
-              type="text"
-              id="gameId"
-              value="SL001"
-              placeholder="Enter game ID"
-            />
-          </div>
-          <div class="form-group">
-            <label for="gameMessage">Game Message:</label>
-            <input
-              type="text"
-              id="gameMessage"
-              placeholder="Enter message to send"
-              value='{"data":{"currentBet":0.0,"currentLines":20.0,"spins":1.0},"id":"SPIN"}'
-            />
-            <button class="send-btn" onclick="sendGameMessage()">
-              Send Message
-            </button>
-          </div>
-          <div class="button-group">
-            <button class="connect-btn" onclick="connectGame()">
-              Connect Game
-            </button>
-            <button class="disconnect-btn" onclick="disconnectGame()">
-              Disconnect Game
-            </button>
-          </div>
-          <div id="gameStatus" class="status disconnected">Disconnected</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Connection Log</h2>
-        <div class="log-controls">
-          <div class="log-filters">
-            <div
-              class="log-filter active"
-              data-filter="platform"
-              onclick="toggleLogFilter('platform')"
-            >
-              Platform
-            </div>
-            <div
-              class="log-filter active"
-              data-filter="game"
-              onclick="toggleLogFilter('game')"
-            >
-              Game
-            </div>
-            <div
-              class="log-filter active"
-              data-filter="system"
-              onclick="toggleLogFilter('system')"
-            >
-              System
-            </div>
-          </div>
-          <div class="clear-logs-btn" onclick="clearLogs()">Clear Logs</div>
-        </div>
-        <div id="log" class="log-container"></div>
-      </div>
+  <section id="socketSection" hidden>
+    <h2>Connection</h2>
+    <input id="serverUrl" placeholder="Server URL (e.g. http://localhost:5000/playground)" />
+    <div class="button-group">
+      <button id="connectBtn" disabled>Connect</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
     </div>
+    <p>Status: <span id="statusText">Disconnected</span></p>
+  </section>
 
-    <script>
-      let platformSocket = null;
-      let gameSocket = null;
-      let currentUsername = "";
-      let currentToken = "";
-      let activeFilters = {
-        platform: true,
-        game: true,
-        system: true,
-      };
+  <section id="configEditorSection" hidden>
+    <h2>Configuration Editor</h2>
+    <textarea id="jsonEditor" rows="10"></textarea>
+    <button id="updateConfigBtn" disabled>Update Configuration</button>
+  </section>
 
-      // Load saved settings from localStorage
-      function loadSavedSettings() {
-        const settings = JSON.parse(
-          localStorage.getItem("socketSettings") || "{}",
-        );
+  <section id="logsSection">
+    <h2>Logs</h2>
+    <div id="logContainer"></div>
+  </section>
 
-        if (settings.platformUrl)
-          document.getElementById("platformUrl").value = settings.platformUrl;
-        if (settings.gameUrl)
-          document.getElementById("gameUrl").value = settings.gameUrl;
-        if (settings.platformId)
-          document.getElementById("platformId").value = settings.platformId;
-        if (settings.origin)
-          document.getElementById("origin").value = settings.origin;
-        if (settings.gameId)
-          document.getElementById("gameId").value = settings.gameId;
-        if (settings.username) {
-          document.getElementById("username").value = settings.username;
-          currentUsername = settings.username;
-        }
-        if (settings.token) {
-          document.getElementById("token").textContent = settings.token;
-          document.getElementById("tokenDisplay").style.display = "block";
-          currentToken = settings.token;
-        } else {
-          // Try to load token from server if not in localStorage
-          loadTokenFromServer();
-        }
+
+  <section id="spinSection" hidden>
+    <h2>Spin</h2>
+    <input id="spinInput" value='{"currentBet":1}' />
+    <button id="spinBtn" disabled>Spin</button>
+  </section>
+
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+  <script>
+    (function () {
+      // Create and add theme toggle button to the page
+      const themeBtn = document.createElement('button');
+      themeBtn.className = 'theme-switch';
+      themeBtn.id = 'themeToggle';
+      themeBtn.innerHTML = '🌙';
+      themeBtn.setAttribute('title', 'Toggle dark mode');
+      document.body.appendChild(themeBtn);
+
+      // Cache DOM elements
+      const body = document.body;
+      const loginBtn = document.getElementById('loginBtn');
+      const usernameInput = document.getElementById('username');
+      const passwordInput = document.getElementById('password');
+      const gameSelectorSection = document.getElementById('gameSelectorSection');
+      const searchInput = document.getElementById('searchGame');
+      const gameDropdown = document.getElementById('gameDropdown');
+      const socketSection = document.getElementById('socketSection');
+      const serverUrlInput = document.getElementById('serverUrl');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const statusText = document.getElementById('statusText');
+      const gameTokenDisplay = document.getElementById('gameTokenDisplay');
+      const gameTokenSpan = document.getElementById('gameToken');
+      const configEditorSection = document.getElementById('configEditorSection');
+      const jsonEditor = document.getElementById('jsonEditor');
+      const updateConfigBtn = document.getElementById('updateConfigBtn');
+      const logContainer = document.getElementById('logContainer');
+      const themeSwitch = document.getElementById('themeToggle');
+      const spinSection = document.getElementById('spinSection');
+      const spinInput = document.getElementById('spinInput');
+      const spinBtn = document.getElementById('spinBtn');
+
+      // State
+      let socket = null;
+      let accessToken = null;
+      let gameToken = null;
+      let isConnected = false;
+      let darkMode = localStorage.getItem('darkMode') === 'true';
+
+      // Utilities
+      function log(msg, type = 'info') {
+        const entry = document.createElement('div');
+        entry.className = `log-${type}`;
+        entry.textContent = `[${type.toUpperCase()}] ${typeof msg === 'string' ? msg : JSON.stringify(msg)}`;
+        logContainer.appendChild(entry);
+        entry.scrollIntoView();
       }
 
-      // Load token from server
-      async function loadTokenFromServer() {
+      function toggleSection(section, show) {
+        section.hidden = !show;
+      }
+
+      function updateStatus(connected) {
+        isConnected = !!connected;
+        statusText.textContent = connected ? 'Connected' : 'Disconnected';
+        statusText.className = connected ? 'connected' : '';
+        connectBtn.disabled = connected;
+        disconnectBtn.disabled = !connected;
+        // Hide editor on disconnect
+        if (!connected) toggleSection(configEditorSection, false);
+      }
+
+      // API helper
+      async function apiFetch(url, opts = {}) {
         try {
-          const response = await fetch("/api/load-token");
-          const data = await response.json();
-
-          if (data.success && data.token) {
-            currentToken = data.token;
-            document.getElementById("token").textContent = data.token;
-            document.getElementById("tokenDisplay").style.display = "block";
-            log("Token loaded from server", "success");
-
-            // Try to load username if available
-            try {
-              const usernameResponse = await fetch("/api/load-username");
-              const usernameData = await usernameResponse.json();
-              if (usernameData.success && usernameData.username) {
-                currentUsername = usernameData.username;
-                document.getElementById("username").value =
-                  usernameData.username;
-                log("Username loaded from server", "success");
-              }
-            } catch (error) {
-              // Username file might not exist, which is fine
-            }
-
-            saveSettings();
-          } else {
-            log("No token found on server", "info");
-          }
-        } catch (error) {
-          log("Error loading token from server: " + error.message, "error");
+          const res = await fetch(url, opts);
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.message || json.error || 'Request failed');
+          return json;
+        } catch (err) {
+          log(err.message, 'error');
+          throw err;
         }
       }
 
-      // Save settings to localStorage
-      function saveSettings() {
-        const settings = {
-          platformUrl: document.getElementById("platformUrl").value,
-          gameUrl: document.getElementById("gameUrl").value,
-          platformId: document.getElementById("platformId").value,
-          origin: document.getElementById("origin").value,
-          gameId: document.getElementById("gameId").value,
-          username: currentUsername,
-          token: currentToken,
-        };
-        localStorage.setItem("socketSettings", JSON.stringify(settings));
-      }
-
-      function toggleLogFilter(filter) {
-        activeFilters[filter] = !activeFilters[filter];
-        const filterElement = document.querySelector(
-          `.log-filter[data-filter="${filter}"]`,
-        );
-        filterElement.classList.toggle("active");
-        updateLogVisibility();
-      }
-
-      function updateLogVisibility() {
-        const logEntries = document.querySelectorAll(".log-entry");
-        logEntries.forEach((entry) => {
-          const isPlatform = entry.classList.contains("platform");
-          const isGame = entry.classList.contains("game");
-          const isSystem = !isPlatform && !isGame;
-
-          let shouldShow = false;
-          if (isPlatform && activeFilters.platform) shouldShow = true;
-          if (isGame && activeFilters.game) shouldShow = true;
-          if (isSystem && activeFilters.system) shouldShow = true;
-
-          entry.style.display = shouldShow ? "block" : "none";
-        });
-      }
-
-      function clearLogs() {
-        const logContainer = document.getElementById("log");
-        logContainer.innerHTML = "";
-      }
-
-      function log(message, type = "info", source = "system") {
-        const logContainer = document.getElementById("log");
-        const logEntry = document.createElement("div");
-        logEntry.className = `log-entry ${type} ${source}`;
-        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        logContainer.appendChild(logEntry);
-        logContainer.scrollTop = logContainer.scrollHeight;
-        updateLogVisibility();
-      }
-
-      async function login() {
-        const username = document.getElementById("username").value;
-        const password = document.getElementById("password").value;
-
-        if (!username || !password) {
-          log("Please enter both username and password", "error");
-          return;
-        }
-
+      // Login
+      loginBtn.addEventListener('click', async () => {
         try {
-          const response = await fetch("/api/user/login", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ username, password }),
-          });
+          // Show progress bar
+          const loginProgress = document.getElementById('loginProgress');
+          loginProgress.hidden = false;
+          loginBtn.disabled = true;
 
-          const data = await response.json();
-
-          if (data.token) {
-            currentUsername = username;
-            currentToken = data.token;
-            document.getElementById("token").textContent = data.token;
-            document.getElementById("tokenDisplay").style.display = "block";
-            log("Login successful", "success");
-            saveSettings();
-          } else {
-            log("Login failed: " + (data.error || "Unknown error"), "error");
-          }
-        } catch (error) {
-          log("Error during login: " + error.message, "error");
-        }
-      }
-
-      async function saveToken() {
-        if (!currentToken) {
-          log("No token to save", "error");
-          return;
-        }
-
-        try {
-          const response = await fetch("/api/save-token", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+          const {data} = await apiFetch('/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-              token: currentToken,
-              username: currentUsername,
+              username: usernameInput.value,
+              password: passwordInput.value
             }),
+            credentials: 'include'
           });
 
-          const data = await response.json();
-          if (data.success) {
-            log("Token saved successfully", "success");
-          } else {
-            log("Failed to save token: " + data.error, "error");
-          }
-        } catch (error) {
-          log("Error saving token: " + error.message, "error");
+          accessToken = data.accessToken;
+          log('Logged in successfully', 'success');
+          toggleSection(gameSelectorSection, true);
+          await loadGames();
+
+          // Success animation
+          loginProgress.style.width = '100%';
+          setTimeout(() => {
+            loginProgress.hidden = true;
+            loginBtn.disabled = false;
+          }, 500);
+        } catch (err) {
+          log(`Login failed: ${err.message}`, 'error');
+          document.getElementById('loginProgress').hidden = true;
+          loginBtn.disabled = false;
+
+          // Shake animation for error
+          loginBtn.style.animation = 'shake 0.5s';
+          setTimeout(() => {
+            loginBtn.style.animation = '';
+          }, 500);
         }
-      }
-
-      function connectPlatform() {
-        const url = document.getElementById("platformUrl").value;
-        const platformId = document.getElementById("platformId").value;
-        const origin = document.getElementById("origin").value;
-
-        if (!url || !currentToken) {
-          log("Please login first and enter platform URL", "error");
-          return;
-        }
-
-        try {
-          platformSocket = io(url, {
-            auth: {
-              token: currentToken,
-              platformId: platformId,
-              origin: origin,
-            },
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-          });
-
-          platformSocket.on("connect", () => {
-            document.getElementById("platformStatus").className =
-              "status connected";
-            document.getElementById("platformStatus").textContent = "Connected";
-            log(
-              "Platform socket connected successfully",
-              "success",
-              "platform",
-            );
-          });
-
-          platformSocket.on("disconnect", () => {
-            document.getElementById("platformStatus").className =
-              "status disconnected";
-            document.getElementById("platformStatus").textContent =
-              "Disconnected";
-            log("Platform socket disconnected", "warning", "platform");
-          });
-
-          platformSocket.on("error", (error) => {
-            log(`Platform socket error: ${error.message}`, "error", "platform");
-          });
-
-          platformSocket.on("connect_error", (error) => {
-            log(
-              `Platform connection error: ${error.message}`,
-              "error",
-              "platform",
-            );
-          });
-
-          platformSocket.on("alert", (message) => {
-            log(`Platform alert: ${message}`, "warning", "platform");
-          });
-
-          platformSocket.on("message", (message) => {
-            try {
-              const parsedMessage = JSON.parse(message);
-              log(
-                `Platform message: ${JSON.stringify(parsedMessage)}`,
-                "info",
-                "platform",
-              );
-            } catch (error) {
-              log(`Platform message: ${message}`, "info", "platform");
-            }
-          });
-
-          platformSocket.on("data", (data) => {
-            log(`Platform data: ${JSON.stringify(data)}`, "info", "platform");
-          });
-        } catch (error) {
-          log(`Error connecting to platform: ${error.message}`, "error");
-        }
-      }
-
-      function connectGame() {
-        const url = document.getElementById("gameUrl").value;
-        const gameId = document.getElementById("gameId").value;
-
-        if (!url || !currentToken) {
-          log("Please login first and enter game URL", "error");
-          return;
-        }
-
-        if (!platformSocket || !platformSocket.connected) {
-          log(
-            "Platform socket must be connected before connecting to game",
-            "error",
-          );
-          return;
-        }
-
-        try {
-          gameSocket = io(url, {
-            auth: {
-              token: currentToken,
-              gameId: gameId,
-            },
-            transports: ["websocket"],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000,
-          });
-
-          gameSocket.on("connect", () => {
-            document.getElementById("gameStatus").className =
-              "status connected";
-            document.getElementById("gameStatus").textContent = "Connected";
-            log("Game socket connected successfully", "success", "game");
-          });
-
-          gameSocket.on("disconnect", () => {
-            document.getElementById("gameStatus").className =
-              "status disconnected";
-            document.getElementById("gameStatus").textContent = "Disconnected";
-            log("Game socket disconnected", "warning", "game");
-          });
-
-          gameSocket.on("error", (error) => {
-            log(`Game socket error: ${error.message}`, "error", "game");
-          });
-
-          gameSocket.on("connect_error", (error) => {
-            log(`Game connection error: ${error.message}`, "error", "game");
-          });
-
-          gameSocket.on("alert", (message) => {
-            log(`Game alert: ${message}`, "warning", "game");
-          });
-
-          gameSocket.on("message", (message) => {
-            try {
-              const parsedMessage = JSON.parse(message);
-              log(
-                `Game message: ${JSON.stringify(parsedMessage)}`,
-                "info",
-                "game",
-              );
-            } catch (error) {
-              log(`Game message: ${message}`, "info", "game");
-            }
-          });
-
-          gameSocket.on("data", (data) => {
-            log(`Game data: ${JSON.stringify(data)}`, "info", "game");
-          });
-        } catch (error) {
-          log(`Error connecting to game: ${error.message}`, "error");
-        }
-      }
-
-      function disconnectPlatform() {
-        if (platformSocket) {
-          platformSocket.disconnect();
-          platformSocket = null;
-          document.getElementById("platformStatus").className =
-            "status disconnected";
-          document.getElementById("platformStatus").textContent =
-            "Disconnected";
-          log("Platform socket disconnected", "info");
-        }
-      }
-
-      function disconnectGame() {
-        if (gameSocket) {
-          gameSocket.disconnect();
-          gameSocket = null;
-          document.getElementById("gameStatus").className =
-            "status disconnected";
-          document.getElementById("gameStatus").textContent = "Disconnected";
-          log("Game socket disconnected", "info");
-        }
-      }
-
-      function sendGameMessage() {
-        if (!gameSocket || !gameSocket.connected) {
-          log("Game socket is not connected", "error");
-          return;
-        }
-
-        const messageInput = document.getElementById("gameMessage");
-        const message = messageInput.value.trim();
-
-        if (!message) {
-          log("Please enter a message to send", "error");
-          return;
-        }
-
-        try {
-          // Try to parse as JSON first
-          let parsedMessage;
-          try {
-            parsedMessage = JSON.parse(message);
-          } catch (e) {
-            // If not valid JSON, send as string
-            parsedMessage = message;
-          }
-          console.log("type of message:", typeof parsedMessage);
-
-          gameSocket.emit(
-            "message",
-            typeof parsedMessage === "string"
-              ? parsedMessage
-              : JSON.stringify(parsedMessage),
-          );
-          log(
-            `Sent message to game: ${typeof parsedMessage === "string" ? parsedMessage : JSON.stringify(parsedMessage)}`,
-            "info",
-          );
-          // messageInput.value = ''; // Clear input after sending
-        } catch (error) {
-          log(`Error sending message: ${error.message}`, "error");
-        }
-      }
-
-      // Add keyboard shortcut for sending messages
-      document
-        .getElementById("gameMessage")
-        .addEventListener("keypress", function (e) {
-          if (e.key === "Enter") {
-            sendGameMessage();
-          }
-        });
-
-      // Load saved settings when the page loads
-      document.addEventListener("DOMContentLoaded", loadSavedSettings);
-
-      // Save settings when inputs change
-      document.querySelectorAll("input, select").forEach((input) => {
-        input.addEventListener("change", saveSettings);
       });
-    </script>
-  </body>
+
+      // Also trigger login on Enter key in password field
+      passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          loginBtn.click();
+        }
+      });
+
+      // Load games
+      async function loadGames() {
+        try {
+          const {data} = await apiFetch('/api/games', {
+            headers: {'Authorization': `Bearer ${accessToken}`},
+            credentials: 'include'
+          });
+          populateGames(data);
+          log(`Loaded ${data.length} games`, 'info');
+        } catch (err) {
+          log('Fetch games error: ' + err.message, 'error');
+        }
+      }
+
+      function populateGames(games) {
+        gameDropdown.innerHTML = '';
+        games.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.slug;
+          opt.textContent = g.name || g.slug;
+          gameDropdown.appendChild(opt);
+        });
+      }
+
+      // Filter games
+      searchInput.addEventListener('input', () => {
+        const term = searchInput.value.toLowerCase();
+        gameDropdown.querySelectorAll('option').forEach(opt => {
+          opt.hidden = !opt.textContent.toLowerCase().includes(term);
+        });
+      });
+
+      // Start game
+      gameDropdown.addEventListener('change', async () => {
+        try {
+          const slug = gameDropdown.value;
+          const {data} = await apiFetch(`/api/games/slug/${slug}/play`, {
+            headers: {'Authorization': `Bearer ${accessToken}`},
+            credentials: 'include'
+          });
+
+          gameToken = new URL(data.token).searchParams.get('token');
+          gameTokenSpan.textContent = gameToken;
+
+          toggleSection(gameTokenDisplay, true);
+          toggleSection(socketSection, true);
+          connectBtn.disabled = false;
+          serverUrlInput.value = serverUrlInput.value || 'http://localhost:5000/playground';
+
+          log(`Game "${slug}" started successfully`, 'success');
+        } catch (err) {
+          log(`Start game error: ${err.message}`, 'error');
+        }
+      });
+
+      // Socket connect/disconnect
+      connectBtn.addEventListener('click', () => {
+        try {
+          socket = io(serverUrlInput.value, {transports: ['websocket'], auth: {token: gameToken}});
+
+          socket.on('connect', () => {
+            updateStatus(true);
+            log('Socket connected', 'success');
+            toggleSection(spinSection, true);
+            spinBtn.disabled = false;
+          });
+
+          socket.on('disconnect', () => {
+            updateStatus(false);
+            log('Socket disconnected', 'info');
+            toggleSection(spinSection, false);
+            spinBtn.disabled = true;
+          });
+
+          socket.on('connect_error', (err) => {
+            log(`Connection error: ${err.message}`, 'error');
+          });
+
+          socket.on('game:config', cfg => {
+            jsonEditor.value = JSON.stringify(cfg, null, 2);
+            toggleSection(configEditorSection, true);
+            log('Game configuration received', 'info');
+          });
+
+          socket.onAny((ev, data) => log(`Event [${ev}]: ${JSON.stringify(data)}`, 'received'));
+        } catch (err) {
+          log(`Socket error: ${err.message}`, 'error');
+        }
+      });
+
+      disconnectBtn.addEventListener('click', () => {
+        if (socket) {
+          socket.disconnect();
+          log('Disconnected from server', 'info');
+        }
+      });
+
+      jsonEditor.addEventListener('input', () => {
+        try {
+          JSON.parse(jsonEditor.value);
+          updateConfigBtn.disabled = false;
+        } catch (e) {
+          updateConfigBtn.disabled = true;
+        }
+      });
+
+      // Update config
+      updateConfigBtn.addEventListener('click', () => {
+        if (!socket || !isConnected) return log('Not connected to server', 'error');
+        try {
+          const updated = JSON.parse(jsonEditor.value);
+          socket.emit('game:config:update', updated);
+          log('Configuration update sent', 'sent');
+        } catch (e) {
+          log(`Invalid JSON: ${e.message}`, 'error');
+        }
+      });
+
+
+      spinInput.addEventListener('input', () => {
+        try {
+          JSON.parse(spinInput.value);
+          spinBtn.disabled = false;
+        } catch {
+          spinBtn.disabled = true;
+        }
+      });
+
+      spinBtn.addEventListener('click', () => {
+        if (!socket || !isConnected) return log('Not connected to server', 'error');
+        let spinData;
+        try {
+          spinData = JSON.parse(spinInput.value);
+        } catch (e) {
+          log('Invalid JSON in spin input', 'error');
+          return;
+        }
+        socket.emit('spin:request', JSON.stringify(spinData));
+        log(`Spin request sent: ${JSON.stringify(spinData)}`, 'sent');
+      });
+
+
+      // Theme toggle functionality
+      function setTheme(isDark) {
+        darkMode = isDark;
+        if (isDark) {
+          body.classList.add('dark-theme');
+          themeSwitch.innerHTML = '☀️';
+          themeSwitch.setAttribute('title', 'Switch to light mode');
+        } else {
+          body.classList.remove('dark-theme');
+          themeSwitch.innerHTML = '🌙';
+          themeSwitch.setAttribute('title', 'Switch to dark mode');
+        }
+        localStorage.setItem('darkMode', isDark);
+      }
+
+      // Initialize theme
+      setTheme(darkMode);
+
+      // Theme toggle event handler
+      themeSwitch.addEventListener('click', () => {
+        setTheme(!darkMode);
+      });
+
+      // Keyboard shortcut for theme toggle (Ctrl+Shift+D)
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+          e.preventDefault();
+          setTheme(!darkMode);
+        }
+      });
+
+      // Format JSON in editor with shortcut (Ctrl+Shift+F)
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'F' && document.activeElement === jsonEditor) {
+          e.preventDefault();
+          try {
+            const parsed = JSON.parse(jsonEditor.value);
+            jsonEditor.value = JSON.stringify(parsed, null, 2);
+            log('JSON formatted', 'info');
+          } catch (err) {
+            log('Cannot format invalid JSON', 'error');
+          }
+        }
+      });
+
+      // Copy game token with click
+      gameTokenSpan.addEventListener('click', () => {
+        if (gameToken) {
+          navigator.clipboard.writeText(gameToken)
+            .then(() => {
+              log('Game token copied to clipboard', 'success');
+
+              // Visual feedback
+              const originalBg = gameTokenSpan.style.backgroundColor;
+              gameTokenSpan.style.backgroundColor = darkMode ? '#34d399' : '#10b981';
+              gameTokenSpan.style.color = '#ffffff';
+
+              setTimeout(() => {
+                gameTokenSpan.style.backgroundColor = '';
+                gameTokenSpan.style.color = '';
+              }, 500);
+            })
+            .catch(err => log('Failed to copy: ' + err, 'error'));
+        }
+      });
+
+      // Add tooltips
+      gameTokenSpan.title = 'Click to copy to clipboard';
+
+      // Add section animations
+      const sections = document.querySelectorAll('section');
+      sections.forEach(section => {
+        section.classList.add('fade-in');
+      });
+
+      // Set initial focus on username
+      usernameInput.focus();
+
+      // Initial log
+      log('Client initialized and ready', 'info');
+      log('Tip: Press Ctrl+Shift+D to toggle dark mode', 'info');
+      log('Tip: Click on game token to copy it', 'info');
+      log('Tip: Press Ctrl+Shift+F to format JSON in the editor', 'info');
+    })();
+  </script>
+</body>
+
 </html>
