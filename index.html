@@ -456,6 +456,7 @@
   <section id="spinSection" hidden>
     <h2>Spin</h2>
     <input id="spinInput" value='{"currentBet":1}' />
+    <input id="spinIdInput" value='spin:request' />
     <button id="spinBtn" disabled>Spin</button>
   </section>
 
@@ -492,6 +493,7 @@
       const themeSwitch = document.getElementById('themeToggle');
       const spinSection = document.getElementById('spinSection');
       const spinInput = document.getElementById('spinInput');
+      const spinIdInput = document.getElementById('spinIdInput');
       const spinBtn = document.getElementById('spinBtn');
 
       // State
@@ -714,16 +716,26 @@
         }
       });
 
+      // spinIdInput.addEventListener('input', () => {
+      // try {
+      //   JSON.parse(spinIdInput.value);
+      //   spinBtn.disabled = false;
+      // } catch {
+      //   spinBtn.disabled = true;
+      // }
+      // });
+
       spinBtn.addEventListener('click', () => {
         if (!socket || !isConnected) return log('Not connected to server', 'error');
         let spinData;
         try {
           spinData = JSON.parse(spinInput.value);
+          // spinId = JSON.parse(spinIdInput.value);
         } catch (e) {
           log('Invalid JSON in spin input', 'error');
           return;
         }
-        socket.emit('spin:request', JSON.stringify(spinData));
+        socket.emit(spinIdInput.value, JSON.stringify(spinData));
         log(`Spin request sent: ${JSON.stringify(spinData)}`, 'sent');
       });
 
